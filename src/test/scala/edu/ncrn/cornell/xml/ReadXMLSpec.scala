@@ -2,7 +2,7 @@ package edu.ncrn.cornell.xml
 
 import scala.xml.XML
 import org.specs2._
-import XPathEnumerator._
+import XpathEnumerator._
 
 
 /**
@@ -18,7 +18,7 @@ class ReadXMLSpec extends Specification { def is = s2"""
    No non-terminal paths returned               ${nonTerminalCount == 0}
    No empty nodes returned by default           ${emptyLeafCount == 0}
    No "#PCDATA" in XPaths                       ${pathsWithPcdata == 0}
-   Determiend correct number of leaf indices    ${indexCheck}
+   Determiend correct number of leaf indices    $indexCheck
    Large XML file is working!                   $readFile
                                  """
 
@@ -33,7 +33,7 @@ class ReadXMLSpec extends Specification { def is = s2"""
   val basicXml = <div class="content"><a><b><b><c>123</c></b><c><d>ABC</d></c></b></a><p>
     <q>hello</q><q>,</q></p><r><p>world</p></r><s></s></div>
   //
-  val xpathEnumerator = new XPathEnumerator {}
+  val xpathEnumerator = new XpathXmlEnumerator {}
   val xpathData = xpathEnumerator.enumerate(pathifyNodes(basicXml))
   //
   // Check that we are getting multiple known nodes and a known attribute path
