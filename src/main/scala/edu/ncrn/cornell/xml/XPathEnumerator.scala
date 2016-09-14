@@ -13,22 +13,19 @@ trait XPathEnumerator {
 
   //var XmlFile = ???
 
-  //TODO: need to support attributes as parental selectors. For each element, we have to have n loops
-  // where n is the number of attribute types
-
   @tailrec
-  final def uniqueXpaths(
+  final def enumerate(
     nodes: Seq[(Node, String)], pathData: List[(String, String)] = Nil
   ): List[(String, String)] = nodes match {
     case (node, currentPath) +: rest =>
       val newElementData =
-        if(node.child.isEmpty) List((currentPath, node.text))
+        if(node.child.isEmpty) List((cleanXpath(currentPath), node.text))
         else Nil
       val newAttributeData = node.attributes.asAttrMap.map{
-        case (key, value) => (currentPath + "@" + key, value)
+        case (key, value) => (currentPath + "/@" + key, value)
       }.toList
-      uniqueXpaths(
-        rest ++ node.child.flatMap(ns => pathifyNodes(ns, currentPath)),
+      enumerate(
+        rest ++ pathifyNodes(node.child, currentPath + "/"),
         newElementData ::: newAttributeData ::: pathData
       )
     case Seq() => pathData
@@ -38,15 +35,21 @@ trait XPathEnumerator {
 object XPathEnumerator{
 
 
+  def cleanXpath(xpath: String) = xpath.replaceFirst("/#PCDATA", "")
   /**
     * Helper function to add XPaths to a node sequence; assume a default of root nodes.
     */
-  def pathifyNodes(nodes: Seq[Node], parPath: String = "/"): Seq[(Node, String)] =
-    nodes.map{nn => (nn, parPath + nn.label + "/")}
+  def pathifyNodes(
+    nodes: Seq[Node], parPath: String = "/", nonEmpty: Boolean = true
+  ): Seq[(Node, String)] = {
+    def nodeIsEmpty(node: Node) = if (nonEmpty && node.child.isEmpty) node.text != "" else true
+    nodes.filter(nodeIsEmpty).groupBy(nn => parPath + nn.label).toList.flatMap{
+      case(xpath, labNodes) =>
+        def xindex(index: Int) = if (labNodes.size > 1) s"[${index + 1}]" else ""
+        labNodes.zipWithIndex.map{case (nn, ii) => (nn, xpath + xindex(ii))}
+    }
+  }
 
-  //  val elementWildcard = "\\[\\*\\]".r
-  //  val attributeWildcard = "(.+)\\[@(.+)\\]".r
-  //  val wildcard = "\\*".r
 
   //def apply() ...
 
