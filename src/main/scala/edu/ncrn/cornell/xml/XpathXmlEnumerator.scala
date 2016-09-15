@@ -12,7 +12,7 @@ import XpathEnumerator._
 trait XpathXmlEnumerator extends XpathEnumerator {
 
   @tailrec
-  final def enumerate(
+  final def enumerateXml(
     nodes: Seq[(Node, String)], pathData: List[(String, String)] = Nil
   ): List[(String, String)] = nodes match {
     case (node, currentPath) +: rest =>
@@ -22,12 +22,19 @@ trait XpathXmlEnumerator extends XpathEnumerator {
       val newAttributeData = node.attributes.asAttrMap.map{
         case (key, value) => (currentPath + "/@" + key, value)
       }.toList
-      enumerate(
+      enumerateXml(
         rest ++ pathifyNodes(node.child, currentPath + "/"),
         newElementData ::: newAttributeData ::: pathData
       )
     case Seq() => pathData
   }
+
+  def enumerate(
+    nodes: Seq[Node], nonEmpty: Boolean = true
+  ): List[(String, String)] = enumerateXml(pathifyNodes(nodes, "/", nonEmpty))
+
+
+
 }
 
 object XpathXmlEnumerator {

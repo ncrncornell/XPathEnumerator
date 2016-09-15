@@ -11,7 +11,7 @@ import XpathEnumerator._
   */
 
 
-class ReadXMLSpec extends Specification { def is = s2"""
+class ReadXmlSpec extends Specification { def is = s2"""
 
  Testing reading in XML
    Small XML snippet is working                 ${readSimple && foundAttrib}
@@ -34,7 +34,7 @@ class ReadXMLSpec extends Specification { def is = s2"""
     <q>hello</q><q>,</q></p><r><p>world</p></r><s></s></div>
   //
   val xpathEnumerator = new XpathXmlEnumerator {}
-  val xpathData = xpathEnumerator.enumerate(pathifyNodes(basicXml))
+  val xpathData = xpathEnumerator.enumerate(basicXml)
   //
   // Check that we are getting multiple known nodes and a known attribute path
   def readSimple = xpathData.size > 2
@@ -55,7 +55,7 @@ class ReadXMLSpec extends Specification { def is = s2"""
   //
   val largeXmlFile = "/ssbv602.xml"
   val largeXml = XML.load(this.getClass.getResourceAsStream(largeXmlFile))
-  val largeXpathData = xpathEnumerator.enumerate(pathifyNodes(largeXml))
+  val largeXpathData = xpathEnumerator.enumerate(largeXml)
   def readFile = largeXpathData.size > xpathData.size
 }
 

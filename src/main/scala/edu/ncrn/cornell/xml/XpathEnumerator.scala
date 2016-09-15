@@ -10,8 +10,16 @@ trait XpathEnumerator {
 
   //var XmlFile = ???
 
+  //TODO: add public interface for enumerate that only takes Seq[Node] as input, along with any optional args
+
+  /**
+    *
+    * @param nodes The list of root nodes to start from, typically from an XML document
+    * @param nonEmpty If true, return only XPaths with nonEmpty values.
+    * @return A list of tuples of (XPath, value at XPath)
+    */
   def enumerate(
-    nodes: Seq[(Node, String)], pathData: List[(String, String)] = Nil
+    nodes: Seq[Node], nonEmpty: Boolean
   ): List[(String, String)]
 
 }
