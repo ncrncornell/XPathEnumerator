@@ -9,8 +9,23 @@ import scala.xml.Node
 
 object ScalaXmlExtra {
   implicit class NodeExtra(val node: Node) extends AnyVal{
+
+    /**
+      * Convenience method for looking up attribute values using
+      * the attribute name.
+      */
     def attributeVal(attrName: String): Option[String] =
       node.attributes.asAttrMap.get(attrName)
+
+    /**
+      *
+      * @return the qualified name of the node: "prefix:label";
+      *         like Node.nameToString but doesnt' require passing
+      *         a StringBuilder
+      */
+    def fullName: String =
+      if (node.prefix != null) node.prefix + ":" + node.label
+      else node.label
   }
 
 }

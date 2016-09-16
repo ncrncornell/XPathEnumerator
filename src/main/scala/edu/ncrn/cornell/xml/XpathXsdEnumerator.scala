@@ -4,9 +4,12 @@ import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.xml.{Elem, Node}
+import scala.concurrent.blocking
 import ScalaXmlExtra._
 import XpathEnumerator._
 import XpathXsdEnumerator._
+
+import scala.util.{Failure, Success, Try}
 
 
 /**
@@ -23,22 +26,65 @@ import XpathXsdEnumerator._
 //TODO: ##local and ##targetNamespace namespaces : http://www.w3schools.com/xml/el_any.asp
 //TODO: Need to flesh out possibilities for anyAttribute anyURI, etc.
 
-trait XpathXsdEnumerator extends XpathEnumerator {
+// Note: do not use concurrently!
 
-  implicit val xpathXsdEnumerator: XpathXsdEnumerator = this
+trait XpathXsdEnumerator extends XpathEnumerator {
 
   //
   // Maps from an XPath to a reusable (named) element or type;
   // used for scope determination and node lookup
   //
-  var namedTypes: Map[String, Node] = Map()
-  var namedElements: Map[String, Node] = Map()
+  var namedTypes: XpathNodeMap = Map()
+  var namedElements: XpathNodeMap = Map()
+
+  //TODO: may need to match on (Node, XPath: String)
+  object XsdNonLocalElement {
+    //TODO: also looking up arg.fullName is not sufficient... need whole xpath?
+    def unapply(arg: Node): Option[(String, Try[Node])] =
+      if (xsdElems.contains(arg.fullName)) arg.attributes.asAttrMap match {
+        case attrMap if attrMap.contains("ref") =>
+          Some(attrMap("ref"), Try(namedElements(attrMap("ref"))))
+        case attrMap if attrMap.contains("type") =>
+          //TODO: probably an oversimplification; may need a list of simple types
+          if (attrMap("type").startsWith("xs:")) None
+          else Some(attrMap("name"), Try(namedTypes(attrMap("type"))))
+        case _ => None
+      }
+      else None
+  }
+
+  //  object XsdNamedNode {
+  //    def unapply(arg: Node): Option[String] =
+  //      XsdNamedLocalNode.unapply(arg) orElse XsdNonLocalElement.unapply(arg)
+  //  }
+
+  def xsdXpathLabel(node: Node): String = node match {
+    case XsdNamedLocalNode(label) => label
+    case XsdNonLocalElement(nodeMaybe) => nodeMaybe._1
+    case _ => ""
+  }
+
+  //TODO: note that the only diff so far is use of xsdXpathLabel ; refactor?
+  def pathifyXsdNodes(
+                       nodes: Seq[Node], parPath: String = "/", nonEmpty: Boolean = true
+                     ): Seq[(Node, String)] = {
+    def nodeIsEmpty(node: Node) =
+      if (nonEmpty && node.child.isEmpty) node.text != "" else true
+    nodes.filter(nodeIsEmpty).groupBy(nn => parPath + xsdXpathLabel(nn)).toList.flatMap{
+      case(xpath, labNodes) =>
+        def xindex(index: Int) = if (labNodes.size > 1) s"[${index + 1}]" else ""
+        labNodes.zipWithIndex.map{case (nn, ii) => (nn, xpath + xindex(ii))}
+    }
+  }
+
+  //implicit val xpathXsdEnumerator: XpathXsdEnumerator = this
 
   @tailrec
   final def enumerateXsd(
      nodes: Seq[(Node, String)], pathData: List[(String, String)] = Nil
    ): List[(String, String)] = nodes match {
     case (node, currentPath) +: rest =>
+      println(s"operating on ${node.fullName} with current path $currentPath")
       val newElementData =
         if(node.child.isEmpty) List((cleanXpath(currentPath), node.text))
         else Nil
@@ -47,62 +93,106 @@ trait XpathXsdEnumerator extends XpathEnumerator {
       }.toList
       node match {
         case XsdNamedType(label) =>
+          println(s"XsdNamedType: $label") //DEBUG
           namedTypes += (cleanXpath(currentPath) -> node)
+          enumerateXsd( // Default
+            rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
+            newElementData ::: newAttributeData ::: pathData
+          )
         case XsdNamedElement(label) =>
+          println(s"XsdNamedElement: $label") //DEBUG
           namedElements += (cleanXpath(currentPath) -> node)
-        case _ => ()
+          enumerateXsd( // Default
+            rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
+            newElementData ::: newAttributeData ::: pathData
+          )
+        case XsdNonLocalElement(label, nodeMaybe) => nodeMaybe match {
+          case Success(refnode) =>
+            println(s"XsdNonLocalElement: $label, Success") //DEBUG
+            enumerateXsd( // Continue with refnode's children instead
+              rest ++ pathifyXsdNodes(refnode.child, currentPath + "/"),
+              newElementData ::: newAttributeData ::: pathData
+            )
+          case Failure(e) => //TODO: narrow this down to appropriate error
+            println(s"XsdNonLocalElement: $label, Failure") //DEBUG
+            println(e) // DEBUG
+            enumerateXsd( // Not ready yet, let's try again later:
+              rest ++ Seq((node, currentPath)),
+              newElementData ::: newAttributeData ::: pathData
+            )
+        }
+        case _ =>
+          println(s"No labeled match.") //DEBUG
+          enumerateXsd( // Default
+            rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
+            newElementData ::: newAttributeData ::: pathData
+          )
       }
-      enumerateXsd(
-        rest ++ pathifyNodes(node.child, currentPath + "/"),
-        newElementData ::: newAttributeData ::: pathData
-      )
     case Seq() => pathData
   }
 
   def enumerate(
     nodes: Seq[Node], nonEmpty: Boolean = false
-  ): List[(String, String)] = enumerateXsd(pathifyNodes(nodes, "/", nonEmpty))
+  ): List[(String, String)] = enumerateXsd(pathifyXsdNodes(nodes, "/", nonEmpty))
 
 }
 
 
 object XpathXsdEnumerator {
 
+  type XpathNodeMap = Map[String, Node]
+
   // Let's model the types of nodes we care about with extractors,
   // returning None if it isn't an appropriate type
 
   val xsdElems = List("xs:element")
   val xsdAttribs = List("xs:attribute")
-  val xsdTypes = List("xs:complexType", "xs:simpleType")
-  val xsdNamedNodes = xsdElems ::: xsdAttribs :: xsdTypes
+  val xsdComplexTypes = List("xs:complexType")
+  val xsdNamedNodes = xsdElems ::: xsdAttribs :: xsdComplexTypes
 
 
   object XsdNamedType {
     // Note that an unnamed ComplexType can only be used by the parent element,
     // so we don't need to recognize such unnamed cases here.
     def unapply(arg: Node): Option[String] =
-    if (xsdTypes.contains(arg.label)) arg.attributeVal("name") else None
+    if (xsdComplexTypes.contains(arg.fullName)) arg.attributeVal("name") else None
   }
 
 
   object XsdNamedElement {
-    def unapply(arg: Node): Option[String] =
-      if (xsdElems.contains(arg.label)) arg.attributeVal("name") else None
+    def unapply(arg: Node): Option[String] = {
+      println(s"XsdNamedElement fullName in unapply: ${arg.fullName}")
+      if (arg.attributeVal("type").nonEmpty) {
+        println(s"type for ${arg.fullName} is ${arg.attributeVal("type").get}")
+      }
+      if (xsdElems.contains(arg.fullName) &&
+        arg.attributeVal("ref").isEmpty &&
+        //TODO: may need to consider simple types more precisely
+        (arg.attributeVal("type").isEmpty || arg.attributeVal("type").get.startsWith("xs:"))
+      ) arg.attributeVal("name")
+      else None
+    }
   }
 
   object XsdNamedAttribute {
-    def unapply(arg: Node): Option[Node] =
-      if (xsdAttribs.contains(arg.label)) Some(arg) else None
+    def unapply(arg: Node): Option[String] =
+      if (xsdAttribs.contains(arg.fullName)) arg.attributeVal("name") else None
   }
 
-  //TODO: this isn't exactly what we want ... within the future, caller.namedElements is
-  //TODO: executed immediately, but we need to see if it exists each time when probed
-  object XsdNonLocalElement {
-    def unapply(arg: Node)(implicit caller: XpathXsdEnumerator): Option[Future[Node]] =
-      if (xsdElems.contains(arg.label)) Some(Future(caller.namedElements(arg.label)))
-      else if (xsdTypes.contains(arg.label)) Some(Future(caller.namedTypes(arg.label)))
-      else None
+  object XsdNamedLocalNode {
+    def unapply(arg: Node): Option[String] =
+      XsdNamedElement.unapply(arg) orElse XsdNamedAttribute.unapply(arg)
   }
+
+
+
+  //            blocking{
+  //            while(!caller.namedElements.contains(arg.fullName)) {}
+  //            caller.namedElements(arg.fullName)
+  //          }
+
+
+
 
 }
 

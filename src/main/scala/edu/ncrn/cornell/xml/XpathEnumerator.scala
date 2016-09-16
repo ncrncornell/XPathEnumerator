@@ -33,12 +33,13 @@ object XpathEnumerator{
   def pathifyNodes(
     nodes: Seq[Node], parPath: String = "/", nonEmpty: Boolean = true
   ): Seq[(Node, String)] = {
-    def nodeIsEmpty(node: Node) = if (nonEmpty && node.child.isEmpty) node.text != "" else true
-    nodes.filter(nodeIsEmpty).groupBy(nn => parPath + nn.label).toList.flatMap{
-      case(xpath, labNodes) =>
-        def xindex(index: Int) = if (labNodes.size > 1) s"[${index + 1}]" else ""
-        labNodes.zipWithIndex.map{case (nn, ii) => (nn, xpath + xindex(ii))}
-    }
+    def nodeIsEmpty(node: Node) =
+      if (nonEmpty && node.child.isEmpty) node.text != "" else true
+      nodes.filter(nodeIsEmpty).groupBy(nn => parPath + nn.label).toList.flatMap{
+        case(xpath, labNodes) =>
+          def xindex(index: Int) = if (labNodes.size > 1) s"[${index + 1}]" else ""
+          labNodes.zipWithIndex.map{case (nn, ii) => (nn, xpath + xindex(ii))}
+      }
   }
 
 }
