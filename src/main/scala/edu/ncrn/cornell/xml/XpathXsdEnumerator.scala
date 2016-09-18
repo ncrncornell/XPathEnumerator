@@ -64,16 +64,13 @@ trait XpathXsdEnumerator extends XpathEnumerator {
     case _ => ""
   }
 
-  //TODO: note that the only diff so far is use of xsdXpathLabel ; refactor?
-  def pathifyXsdNodes(
-                       nodes: Seq[Node], parPath: String = "/", nonEmpty: Boolean = true
-                     ): Seq[(Node, String)] = {
-    def nodeIsEmpty(node: Node) =
-      if (nonEmpty && node.child.isEmpty) node.text != "" else true
-    nodes.filter(nodeIsEmpty).groupBy(nn => parPath + xsdXpathLabel(nn)).toList.flatMap{
+  def pathifyXsdNodes(nodes: Seq[Node], parPath: String = "/")
+  : Seq[(Node, String)] = {
+    nodes.groupBy(nn => parPath + xsdXpathLabel(nn)).toList.flatMap{
       case(xpath, labNodes) =>
-        def xindex(index: Int) = if (labNodes.size > 1) s"[${index + 1}]" else ""
-        labNodes.zipWithIndex.map{case (nn, ii) => (nn, xpath + xindex(ii))}
+        //TODO: replace xindex with multiplicity (wildcars) taking into account maxOccurs
+        // def xindex(index: Int) = if (labNodes.size > 1) s"[${index + 1}]" else ""
+        labNodes.zipWithIndex.map{case (nn, ii) => (nn, xpath)}
     }
   }
 
@@ -123,8 +120,8 @@ trait XpathXsdEnumerator extends XpathEnumerator {
         }
         case _ =>
           println(s"No labeled match.") //DEBUG
-          enumerateXsd( // Default
-            rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
+          enumerateXsd( // Default; no path change
+            rest ++ pathifyXsdNodes(node.child, currentPath),
             newElementData ::: newAttributeData ::: pathData
           )
       }
@@ -133,7 +130,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
 
   def enumerate(
     nodes: Seq[Node], nonEmpty: Boolean = false
-  ): List[(String, String)] = enumerateXsd(pathifyXsdNodes(nodes, "/", nonEmpty))
+  ): List[(String, String)] = enumerateXsd(pathifyXsdNodes(nodes, "/"))
 
 }
 
