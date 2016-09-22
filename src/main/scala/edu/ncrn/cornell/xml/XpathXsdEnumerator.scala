@@ -78,10 +78,10 @@ trait XpathXsdEnumerator extends XpathEnumerator {
 
   @tailrec
   final def enumerateXsd(
-     nodes: Seq[(Node, String)], pathData: List[(String, String)] = Nil
+    nodes: Seq[(Node, String)], pathData: List[(String, String)] = Nil,
+    refNodesVisited: List[Node] = Nil
    ): List[(String, String)] = nodes match {
     case (node, currentPath) +: rest =>
-      println(s"operating on ${node.fullName} with current path $currentPath")
       val newElementData =
         if(node.child.isEmpty) List((cleanXpath(currentPath), node.text))
         else Nil
@@ -90,39 +90,44 @@ trait XpathXsdEnumerator extends XpathEnumerator {
       }.toList
       node match {
         case XsdNamedType(label) =>
-          println(s"XsdNamedType: $label") //DEBUG
-          namedTypes += (cleanXpath(currentPath) -> node)
+          //TODO probably need a better way to look up namespaces
+          namedTypes += (label -> node)
           enumerateXsd( // Default
             rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
-            newElementData ::: newAttributeData ::: pathData
+            newElementData ::: newAttributeData ::: pathData,
+            refNodesVisited
           )
         case XsdNamedElement(label) =>
-          println(s"XsdNamedElement: $label") //DEBUG
-          namedElements += (cleanXpath(currentPath) -> node)
+          //TODO probably need a better way to look up namespaces
+          namedElements += (label -> node)
           enumerateXsd( // Default
             rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
-            newElementData ::: newAttributeData ::: pathData
+            newElementData ::: newAttributeData ::: pathData,
+            refNodesVisited
           )
         case XsdNonLocalElement(label, nodeMaybe) => nodeMaybe match {
           case Success(refnode) =>
-            println(s"XsdNonLocalElement: $label, Success") //DEBUG
+            if (refNodesVisited.contains(refnode)){
+              (currentPath, "recursive!") :: pathData // DEBUG
+              return pathData
+            }
             enumerateXsd( // Continue with refnode's children instead
               rest ++ pathifyXsdNodes(refnode.child, currentPath + "/"),
-              newElementData ::: newAttributeData ::: pathData
+              newElementData ::: newAttributeData ::: pathData,
+              refnode :: refNodesVisited
             )
           case Failure(e) => //TODO: narrow this down to appropriate error
-            println(s"XsdNonLocalElement: $label, Failure") //DEBUG
-            println(e) // DEBUG
             enumerateXsd( // Not ready yet, let's try again later:
               rest ++ Seq((node, currentPath)),
-              newElementData ::: newAttributeData ::: pathData
+              pathData,
+              refNodesVisited
             )
         }
         case _ =>
-          println(s"No labeled match.") //DEBUG
           enumerateXsd( // Default; no path change
             rest ++ pathifyXsdNodes(node.child, currentPath),
-            newElementData ::: newAttributeData ::: pathData
+            newElementData ::: newAttributeData ::: pathData,
+            refNodesVisited
           )
       }
     case Seq() => pathData
@@ -130,7 +135,11 @@ trait XpathXsdEnumerator extends XpathEnumerator {
 
   def enumerate(
     nodes: Seq[Node], nonEmpty: Boolean = false
-  ): List[(String, String)] = enumerateXsd(pathifyXsdNodes(nodes, "/"))
+  ): List[(String, String)] = {
+    namedTypes = Map()
+    namedElements = Map()
+    enumerateXsd(pathifyXsdNodes(nodes, "/"))
+  }
 
 }
 
@@ -157,18 +166,13 @@ object XpathXsdEnumerator {
 
 
   object XsdNamedElement {
-    def unapply(arg: Node): Option[String] = {
-      println(s"XsdNamedElement fullName in unapply: ${arg.fullName}")
-      if (arg.attributeVal("type").nonEmpty) {
-        println(s"type for ${arg.fullName} is ${arg.attributeVal("type").get}")
-      }
+    def unapply(arg: Node): Option[String] =
       if (xsdElems.contains(arg.fullName) &&
         arg.attributeVal("ref").isEmpty &&
         //TODO: may need to consider simple types more precisely
         (arg.attributeVal("type").isEmpty || arg.attributeVal("type").get.startsWith("xs:"))
       ) arg.attributeVal("name")
       else None
-    }
   }
 
   object XsdNamedAttribute {

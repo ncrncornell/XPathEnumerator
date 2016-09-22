@@ -15,8 +15,8 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
 
  Testing simple ShipOrder XSD
    Testing reading in Russian Doll variant                ${readSimple && foundElem}
-   Testing reading in Salami Slice variant                ${/*readSimple2 && foundElem2*/ false}
-   Testing reading in Venetian Blind variant              ${/*readSimple3 && foundElem3*/ false}
+   Testing reading in Salami Slice variant                ${readSimple2 && foundElem2}
+   Testing reading in Venetian Blind variant              ${readSimple3 && foundElem3}
                                  """
 
 
@@ -30,15 +30,19 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
 
   val xsdRussianDollFile = "/shiporder.xsd"
   val xsdRussianDoll = XML.load(this.getClass.getResourceAsStream(xsdRussianDollFile))
+  println(s"!!!! Initiating enumeration of $xsdRussianDollFile !!!!")
   val russianDollData = xpathEnumerator.enumerate(xsdRussianDoll)
   //
-//  val xsdSalamiSliceFile = "/shiporder2.xsd"
-//  val xsdSalamiSlice = XML.load(this.getClass.getResourceAsStream(xsdSalamiSliceFile))
-//  val SalamiSliceData = xpathEnumerator.enumerate(xsdSalamiSlice)
+  val xsdSalamiSliceFile = "/shiporder2.xsd"
+  val xsdSalamiSlice = XML.load(this.getClass.getResourceAsStream(xsdSalamiSliceFile))
+  println(s"!!!! Initiating enumeration of $xsdSalamiSliceFile !!!!")
+  val SalamiSliceData = xpathEnumerator.enumerate(xsdSalamiSlice)
   //
-//  val xsdVenetianBlindFile = "/shiporder3.xsd"
-//  val xsdVenetianBlind = XML.load(this.getClass.getResourceAsStream(xsdVenetianBlindFile))
-//  val VenetianBlindData = xpathEnumerator.enumerate(xsdVenetianBlind)
+  val xsdVenetianBlindFile = "/shiporder3.xsd"
+  val xsdVenetianBlind = XML.load(this.getClass.getResourceAsStream(xsdVenetianBlindFile))
+  println(s"!!!! Initiating enumeration of $xsdVenetianBlindFile !!!!")
+  val VenetianBlindData = xpathEnumerator.enumerate(xsdVenetianBlind)
+  VenetianBlindData.foreach(x => println(x))
 
   //
   // Check that we are getting multiple known nodes and a known attribute path
@@ -47,17 +51,15 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
     path._1 == "/shiporder/orderperson"
   ).head._2 == ""
   //
-//  def readSimple2 = SalamiSliceData.size > 2
-//  def foundElem2 = SalamiSliceData.filter(path =>
-//    path._1 == "/shiporder/orderperson"
-//  ).head._2 == ""
-//  //
-//  def readSimple3 = VenetianBlindData.size > 2
-//  def foundElem3 = VenetianBlindData.filter(path =>
-//    path._1 == "/shiporder/orderperson"
-//  ).head._2 == ""
-
-
+  def readSimple2 = SalamiSliceData.size > 2
+  def foundElem2 = SalamiSliceData.filter(path =>
+    path._1 == "/shiporder/orderperson"
+  ).head._2 == ""
+  //
+  def readSimple3 = VenetianBlindData.size > 2
+  def foundElem3 = VenetianBlindData.filter(path =>
+    path._1 == "/shiporder/orderperson"
+  ).head._2 == ""
 
 
   //
