@@ -1,8 +1,7 @@
 package edu.ncrn.cornell.xml
 import scala.annotation.tailrec
-
-import scala.xml.Node
-
+import scala.xml.{Node, Utility}
+import ScalaXmlExtra._
 import XpathEnumerator._
 
 /**
@@ -31,7 +30,9 @@ trait XpathXmlEnumerator extends XpathEnumerator {
 
   def enumerate(
     nodes: Seq[Node], nonEmpty: Boolean = true
-  ): List[(String, String)] = enumerateXml(pathifyNodes(nodes, "/", nonEmpty))
+  ): List[(String, String)] = enumerateXml(pathifyNodes(
+    nodes.map(x => Utility.trim(x)), "/", nonEmpty
+  ))
 
 
 

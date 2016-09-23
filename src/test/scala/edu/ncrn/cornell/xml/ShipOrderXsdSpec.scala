@@ -14,9 +14,9 @@ import scala.xml.XML
 class ShipOrderXsdSpec extends Specification { def is = s2"""
 
  Testing simple ShipOrder XSD
-   Testing reading in Russian Doll variant                ${readSimple && foundElem}
-   Testing reading in Salami Slice variant                ${readSimple2 && foundElem2}
-   Testing reading in Venetian Blind variant              ${readSimple3 && foundElem3}
+   Testing reading in Russian Doll variant                $readAndFindRD
+   Testing reading in Salami Slice variant                $readAndFindSS
+   Testing reading in Venetian Blind variant              $readAndFindVB
                                  """
 
 
@@ -26,40 +26,43 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
 //  Determiend correct number of leaf indices    $indexCheck
 //  Large XML file is working!                   $readFile
 
-  val xpathEnumerator = new XpathXsdEnumerator {}
+  val xpathXmlEnumerator = new XpathXmlEnumerator {}
+  val xpathXsdEnumerator = new XpathXsdEnumerator {}
 
   val xsdRussianDollFile = "/shiporder.xsd"
-  val xsdRussianDoll = XML.load(this.getClass.getResourceAsStream(xsdRussianDollFile))
-  println(s"!!!! Initiating enumeration of $xsdRussianDollFile !!!!")
-  val russianDollData = xpathEnumerator.enumerate(xsdRussianDoll)
-  //
   val xsdSalamiSliceFile = "/shiporder2.xsd"
-  val xsdSalamiSlice = XML.load(this.getClass.getResourceAsStream(xsdSalamiSliceFile))
-  println(s"!!!! Initiating enumeration of $xsdSalamiSliceFile !!!!")
-  val SalamiSliceData = xpathEnumerator.enumerate(xsdSalamiSlice)
-  //
   val xsdVenetianBlindFile = "/shiporder3.xsd"
-  val xsdVenetianBlind = XML.load(this.getClass.getResourceAsStream(xsdVenetianBlindFile))
-  println(s"!!!! Initiating enumeration of $xsdVenetianBlindFile !!!!")
-  val VenetianBlindData = xpathEnumerator.enumerate(xsdVenetianBlind)
-  VenetianBlindData.foreach(x => println(x))
 
-  //
-  // Check that we are getting multiple known nodes and a known attribute path
-  def readSimple = russianDollData.size > 2
-  def foundElem = russianDollData.filter(path =>
-    path._1 == "/shiporder/orderperson"
-  ).head._2 == ""
-  //
-  def readSimple2 = SalamiSliceData.size > 2
-  def foundElem2 = SalamiSliceData.filter(path =>
-    path._1 == "/shiporder/orderperson"
-  ).head._2 == ""
-  //
-  def readSimple3 = VenetianBlindData.size > 2
-  def foundElem3 = VenetianBlindData.filter(path =>
-    path._1 == "/shiporder/orderperson"
-  ).head._2 == ""
+  val xmlTestData = xpathXmlEnumerator.enumerate(XML.load(
+    this.getClass.getResourceAsStream("/shiporder.xml")
+  ))
+
+  val readAndFindRD = readAndFindFromFile(xsdRussianDollFile) must beTrue
+  val readAndFindSS = readAndFindFromFile(xsdSalamiSliceFile) must beTrue
+  val readAndFindVB = readAndFindFromFile(xsdVenetianBlindFile) must beTrue
+
+  def readAndFindFromFile(fileName: String): Boolean = {
+    val xsdXml = XML.load(this.getClass.getResourceAsStream(fileName))
+    println(s"!!!! Initiating enumeration of $fileName !!!!")
+    val xsdXmlData = xpathXsdEnumerator.enumerate(xsdXml)
+    xsdXmlData.foreach(x => println(x)) // DEBUG
+    val missingXPaths = xmlTestData.map(_._1).toSet -- xsdXmlData.map(_._1).toSet
+    missingXPaths.foreach(x => println(s"missing: $x"))
+    //
+    // Check that we are getting multiple known nodes and a known attribute path
+    def readSimple = xsdXmlData.size > 2
+    def foundElem = try {
+      xsdXmlData.filter(path =>
+        path._1 == "/shiporder/orderperson"
+      ).head._2 == ""
+    } catch {
+      case ex: NoSuchElementException => false
+    }
+    readSimple && foundElem && missingXPaths.isEmpty
+  }
+
+
+
 
 
   //

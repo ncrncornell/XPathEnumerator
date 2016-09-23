@@ -1,10 +1,7 @@
 package edu.ncrn.cornell.xml
 
 import scala.annotation.tailrec
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.xml.{Elem, Node}
-import scala.concurrent.blocking
+import scala.xml.{Node, Utility}
 import ScalaXmlExtra._
 import XpathEnumerator._
 import XpathXsdEnumerator._
@@ -83,18 +80,19 @@ trait XpathXsdEnumerator extends XpathEnumerator {
    ): List[(String, String)] = nodes match {
     case (node, currentPath) +: rest =>
       val newElementData =
-        if(node.child.isEmpty) List((cleanXpath(currentPath), node.text))
+        if(node.child.isEmpty)
+          List((cleanXpath(currentPath), node.attributes.asAttrMap.getOrElse("type", "")))
         else Nil
-      val newAttributeData = node.attributes.asAttrMap.map{
-        case (key, value) => (currentPath + "/@" + key, value)
-      }.toList
+//      val newAttributeData = node.attributes.asAttrMap.map{
+//        case (key, value) => (currentPath + "/@" + key, value)
+//      }.toList
       node match {
         case XsdNamedType(label) =>
           //TODO probably need a better way to look up namespaces
           namedTypes += (label -> node)
           enumerateXsd( // Default
             rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
-            newElementData ::: newAttributeData ::: pathData,
+            newElementData ::: pathData,
             refNodesVisited
           )
         case XsdNamedElement(label) =>
@@ -102,7 +100,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
           namedElements += (label -> node)
           enumerateXsd( // Default
             rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
-            newElementData ::: newAttributeData ::: pathData,
+            newElementData ::: pathData,
             refNodesVisited
           )
         case XsdNonLocalElement(label, nodeMaybe) => nodeMaybe match {
@@ -113,7 +111,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
             }
             enumerateXsd( // Continue with refnode's children instead
               rest ++ pathifyXsdNodes(refnode.child, currentPath + "/"),
-              newElementData ::: newAttributeData ::: pathData,
+              newElementData ::: pathData,
               refnode :: refNodesVisited
             )
           case Failure(e) => //TODO: narrow this down to appropriate error
@@ -126,7 +124,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
         case _ =>
           enumerateXsd( // Default; no path change
             rest ++ pathifyXsdNodes(node.child, currentPath),
-            newElementData ::: newAttributeData ::: pathData,
+            pathData,
             refNodesVisited
           )
       }
@@ -138,7 +136,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   ): List[(String, String)] = {
     namedTypes = Map()
     namedElements = Map()
-    enumerateXsd(pathifyXsdNodes(nodes, "/"))
+    enumerateXsd(pathifyXsdNodes(nodes.map(x => Utility.trim(x)), "/"))
   }
 
 }
@@ -177,7 +175,7 @@ object XpathXsdEnumerator {
 
   object XsdNamedAttribute {
     def unapply(arg: Node): Option[String] =
-      if (xsdAttribs.contains(arg.fullName)) arg.attributeVal("name") else None
+      if (xsdAttribs.contains(arg.fullName)) arg.attributeVal("@name") else None
   }
 
   object XsdNamedLocalNode {

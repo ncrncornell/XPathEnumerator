@@ -26,6 +26,10 @@ object ScalaXmlExtra {
     def fullName: String =
       if (node.prefix != null) node.prefix + ":" + node.label
       else node.label
+
+    def hasLabel: Boolean = !node.label.trim.isEmpty
+
   }
+
 
 }
