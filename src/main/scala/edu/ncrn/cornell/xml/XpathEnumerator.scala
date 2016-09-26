@@ -8,6 +8,8 @@ import scala.xml.Node
   */
 trait XpathEnumerator {
 
+  protected var nodeFilter: Node => Boolean = (_) => true
+
   //TODO: need a way to establish boundary conditions on recursion; for instance,
   //TODO leaf nodes (simpleTypes) in XSD, or elements with text data in XML, are
   //TODO leaf nodes and thus natural boundaries. However, we may only want to traverse
@@ -25,7 +27,7 @@ trait XpathEnumerator {
     * @return A list of tuples of (XPath, value at XPath)
     */
   def enumerate(
-    nodes: Seq[Node], nonEmpty: Boolean
+    nodes: Seq[Node], nonEmpty: Boolean, newNodeFilter: Node => Boolean
   ): List[(String, String)]
 
 }

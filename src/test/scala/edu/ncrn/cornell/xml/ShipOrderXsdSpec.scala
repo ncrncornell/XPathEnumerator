@@ -2,7 +2,7 @@ package edu.ncrn.cornell.xml
 
 import org.specs2._
 
-import scala.xml.XML
+import scala.xml.{Node, XML}
 import Util._
 
 
@@ -27,6 +27,13 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
 //  Determiend correct number of leaf indices    $indexCheck
 //  Large XML file is working!                   $readFile
 
+  val unwantedPrefixes = List("xsi")
+
+  //TODO: better way to do this based on real namespace lookup in Scala XML?
+  def xmlXpathFilter(xpath: String, badList: List[String]) = !badList.exists(x =>
+    xpath.contains("/" + x + ":") || xpath.contains("/@" + x + ":")
+  )
+
   val xpathXmlEnumerator = new XpathXmlEnumerator {}
   val xpathXsdEnumerator = new XpathXsdEnumerator {}
 
@@ -36,7 +43,8 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
 
   val xmlTestData = xpathXmlEnumerator.enumerate(XML.load(
     this.getClass.getResourceAsStream("/shiporder.xml")
-  ))
+  )).filter(x => xmlXpathFilter(x._1, unwantedPrefixes))
+
   val xmlTestDataNonUniq = toWildCard(xmlTestData.map{x => x._1})
 
   val readAndFindRD = readAndFindFromFile(xsdRussianDollFile) must beTrue
@@ -56,7 +64,7 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
     def foundElem = try {
       xsdXmlData.filter(path =>
         path._1 == "/shiporder/orderperson"
-      ).head._2 == ""
+      ).head._2 == "xs:string"
     } catch {
       case ex: NoSuchElementException => false
     }

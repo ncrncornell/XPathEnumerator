@@ -71,7 +71,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   final def enumerateXsd(
     nodes: Seq[(Node, String)], pathData: List[(String, String)] = Nil,
     refNodesVisited: List[Node] = Nil
-   ): List[(String, String)] = nodes match {
+   ): List[(String, String)] = nodes.filter(x => nodeFilter(x._1)) match {
     case (node, currentPath) +: rest =>
       val newElementData =
         if(node.child.isEmpty)
@@ -134,7 +134,8 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   }
 
   def enumerate(
-    nodes: Seq[Node], nonEmpty: Boolean = false
+    nodes: Seq[Node], nonEmpty: Boolean = false,
+    newNodeFilter: Node => Boolean = _ => true
   ): List[(String, String)] = {
     namedTypes = Map()
     namedElements = Map()
