@@ -3,6 +3,7 @@ package edu.ncrn.cornell.xml
 import org.specs2._
 
 import scala.xml.XML
+import Util._
 
 
 /**
@@ -36,6 +37,7 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
   val xmlTestData = xpathXmlEnumerator.enumerate(XML.load(
     this.getClass.getResourceAsStream("/shiporder.xml")
   ))
+  val xmlTestDataNonUniq = toWildCard(xmlTestData.map{x => x._1})
 
   val readAndFindRD = readAndFindFromFile(xsdRussianDollFile) must beTrue
   val readAndFindSS = readAndFindFromFile(xsdSalamiSliceFile) must beTrue
@@ -46,7 +48,7 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
     println(s"!!!! Initiating enumeration of $fileName !!!!")
     val xsdXmlData = xpathXsdEnumerator.enumerate(xsdXml)
     xsdXmlData.foreach(x => println(x)) // DEBUG
-    val missingXPaths = xmlTestData.map(_._1).toSet -- xsdXmlData.map(_._1).toSet
+    val missingXPaths = xmlTestDataNonUniq.toSet -- xsdXmlData.map(_._1).toSet
     missingXPaths.foreach(x => println(s"missing: $x"))
     //
     // Check that we are getting multiple known nodes and a known attribute path
