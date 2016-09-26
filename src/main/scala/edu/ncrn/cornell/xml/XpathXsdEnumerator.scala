@@ -14,10 +14,6 @@ import scala.util.{Failure, Success, Try}
   *         9/14/2016
   */
 
-//TODO: things to deal with: element+name, refs, types, attributes
-//
-//TODO: need to assume only non-recursive xpaths are of interest, can probably do this by
-//TODO: counting references to particular xml types on an xpath
 
 //TODO: Attempt to support certain "bounded" uses of xs:any, probably just
 //TODO: ##local and ##targetNamespace namespaces : http://www.w3schools.com/xml/el_any.asp
@@ -65,8 +61,6 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   : Seq[(Node, String)] = {
     nodes.groupBy(nn => parPath + xsdXpathLabel(nn)).toList.flatMap{
       case(xpath, labNodes) =>
-        //TODO: replace xindex with multiplicity (wildcars) taking into account maxOccurs
-        // def xindex(index: Int) = if (labNodes.size > 1) s"[${index + 1}]" else ""
         labNodes.zipWithIndex.map{case (nn, ii) => (nn, xpath)}
     }
   }
@@ -100,6 +94,14 @@ trait XpathXsdEnumerator extends XpathEnumerator {
           namedElements += (label -> node)
           enumerateXsd( // Default
             rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
+            newElementData ::: pathData,
+            refNodesVisited
+          )
+        case XsdNamedAttribute(label) =>
+          //val newAttributeData = List((currentPath + "/@" + label, "xs:string"))
+          //TODO probably need a better way to look up namespaces
+          enumerateXsd( // Default
+            rest,
             newElementData ::: pathData,
             refNodesVisited
           )
@@ -175,7 +177,10 @@ object XpathXsdEnumerator {
 
   object XsdNamedAttribute {
     def unapply(arg: Node): Option[String] =
-      if (xsdAttribs.contains(arg.fullName)) arg.attributeVal("@name") else None
+      if (xsdAttribs.contains(arg.fullName)) arg.attributeVal("name") match {
+        case Some(name) => Some("@" + name)
+        case None => None
+      } else None
   }
 
   object XsdNamedLocalNode {
