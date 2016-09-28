@@ -73,25 +73,22 @@ trait XpathXsdEnumerator extends XpathEnumerator {
     refNodesVisited: List[Node] = Nil
    ): List[(String, String)] = nodes.filter(x => nodeFilter(x._1)) match {
     case (node, currentPath) +: rest =>
-      val newElementData =
-        if(node.child.isEmpty)
-          List((cleanXpath(currentPath), node.attributes.asAttrMap.getOrElse("type", "")))
-        else Nil
-//      val newAttributeData = node.attributes.asAttrMap.map{
-//        case (key, value) => (currentPath + "/@" + key, value)
-//      }.toList
       node match {
         case XsdNamedType(label) =>
           //TODO probably need a better way to look up namespaces
           namedTypes += (label -> node)
           enumerateXsd( // Default
             rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
-            newElementData ::: pathData,
+            pathData,
             refNodesVisited
           )
         case XsdNamedElement(label) =>
           //TODO probably need a better way to look up namespaces
           namedElements += (label -> node)
+          val newElementData =
+            if(node.child.isEmpty)
+              List((cleanXpath(currentPath), node.attributes.asAttrMap.getOrElse("type", "DEBUG")))
+            else Nil
           enumerateXsd( // Default
             rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
             newElementData ::: pathData,
@@ -100,6 +97,10 @@ trait XpathXsdEnumerator extends XpathEnumerator {
         case XsdNamedAttribute(label) =>
           //val newAttributeData = List((currentPath + "/@" + label, "xs:string"))
           //TODO probably need a better way to look up namespaces
+          val newElementData =
+            if(node.child.isEmpty)
+              List((cleanXpath(currentPath), node.attributes.asAttrMap.getOrElse("type", "DEBUG")))
+            else Nil
           enumerateXsd( // Default
             rest,
             newElementData ::: pathData,
@@ -109,8 +110,12 @@ trait XpathXsdEnumerator extends XpathEnumerator {
           case Success(refnode) =>
             if (refNodesVisited.contains(refnode)){
               (currentPath, "recursive!") :: pathData // DEBUG
-              return pathData
+              return pathData //TODO: remove return
             }
+            val newElementData =
+              if(refnode.child.isEmpty)
+                List((cleanXpath(currentPath), refnode.attributes.asAttrMap.getOrElse("type", "DEBUG")))
+              else Nil
             enumerateXsd( // Continue with refnode's children instead
               rest ++ pathifyXsdNodes(refnode.child, currentPath + "/"),
               newElementData ::: pathData,
