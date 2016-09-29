@@ -20,6 +20,7 @@ import scala.util.{Failure, Success, Try}
 //TODO: Need to flesh out possibilities for anyAttribute anyURI, etc.
 
 // Note: do not use concurrently!
+// TODO: make safe by passing around all state as a state object
 
 trait XpathXsdEnumerator extends XpathEnumerator {
 
@@ -29,12 +30,18 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   //
   var namedTypes: XpathNodeMap = Map()
   var namedElements: XpathNodeMap = Map()
+  var namedAttributes: XpathNodeMap = Map()
+
+  var nonEmpty: Boolean = true
+
 
   //TODO: may need to match on (Node, XPath: String)
   object XsdNonLocalElement {
     //TODO: also looking up arg.fullName is not sufficient... need whole xpath?
     def unapply(arg: Node): Option[(String, Try[Node])] =
-      if (xsdElems.contains(arg.fullName)) arg.attributes.asAttrMap match {
+      if (xsdDataNodes.contains(arg.fullName)) arg.attributes.asAttrMap match {
+        case attrMap if attrMap.contains("ref") && namedAttributes.contains(attrMap("ref")) =>
+          Some(attrMap("ref"), Try(namedAttributes(attrMap("ref"))))
         case attrMap if attrMap.contains("ref") =>
           Some(attrMap("ref"), Try(namedElements(attrMap("ref"))))
         case attrMap if attrMap.contains("type") =>
@@ -46,19 +53,15 @@ trait XpathXsdEnumerator extends XpathEnumerator {
       else None
   }
 
-  //  object XsdNamedNode {
-  //    def unapply(arg: Node): Option[String] =
-  //      XsdNamedLocalNode.unapply(arg) orElse XsdNonLocalElement.unapply(arg)
-  //  }
-
   def xsdXpathLabel(node: Node): String = {
     val fullLName = node.fullName // DEBUG
     val nodeStr = node.toString //DEBUG
     node match {
-      case XsdNamedLocalNode(label) => label
+      case XsdNamedElement(label)   =>  label
+      case XsdNamedAttribute(label) => "@" + label
       case XsdNonLocalElement(nodeMaybe) =>
-        val test = nodeMaybe._1
-        test // DEBUG
+        if (xsdAttribs.contains(node.fullName)) "@" + nodeMaybe._1
+        else nodeMaybe._1
       case _ => ""
     }
   }
@@ -99,6 +102,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
           )
         case XsdNamedAttribute(label) =>
           //TODO probably need a better way to look up namespaces
+          namedAttributes += (label -> node)
           val newElementData =
             if(node.child.isEmpty)
               List((cleanXpath(currentPath), node.attributes.asAttrMap.getOrElse("type", "DEBUG")))
@@ -118,10 +122,10 @@ trait XpathXsdEnumerator extends XpathEnumerator {
                     case _ => refnode.child.headOption match {
                       case Some(child) if child.fullName == "xs:restriction" =>
                         child.attributes.asAttrMap.getOrElse("base", "asdf")
-                      case _ => "1234"
+                      case _ => ""
                     }
                   }
-                ))
+                )).filter(ne => !nonEmpty ||  ne._2.nonEmpty)
               val newNodes = pathifyXsdNodes(refnode.child, currentPath + "/")
               enumerateXsd( // Continue with refnode's children instead
                 rest ++ newNodes.map(nn => (nn._1, nn._2, refnode :: refNodesVisited)),
@@ -145,11 +149,13 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   }
 
   def enumerate(
-    nodes: Seq[Node], nonEmpty: Boolean = false,
+    nodes: Seq[Node], nonEmpty: Boolean = true,
     newNodeFilter: Node => Boolean = _ => true
   ): List[(String, String)] = {
     namedTypes = Map()
     namedElements = Map()
+    namedAttributes = Map()
+    this.nonEmpty = nonEmpty
     val initNodes = pathifyXsdNodes(nodes.map(x => Utility.trim(x)), "/")
     enumerateXsd(initNodes.map(nn => (nn._1, nn._2, Nil)))
   }
@@ -167,7 +173,7 @@ object XpathXsdEnumerator {
   val xsdElems = List("xs:element")
   val xsdAttribs = List("xs:attribute")
   val xsdNamedTypes = List("xs:simpleType", "xs:complexType")
-  val xsdNamedNodes = xsdElems ::: xsdAttribs :: xsdNamedTypes
+  val xsdDataNodes = xsdElems ::: xsdAttribs
 
 
   object XsdNamedType {
@@ -180,26 +186,27 @@ object XpathXsdEnumerator {
 
   object XsdNamedElement {
     def unapply(arg: Node): Option[String] =
-      if (xsdElems.contains(arg.fullName) &&
-        arg.attributeVal("ref").isEmpty &&
-        //TODO: may need to consider simple types more precisely
-        (arg.attributeVal("type").isEmpty || arg.attributeVal("type").get.startsWith("xs:"))
-      ) arg.attributeVal("name")
+      if (xsdElems.contains(arg.fullName) && isLocallyDefined(arg))
+        arg.attributeVal("name")
       else None
   }
 
   object XsdNamedAttribute {
     def unapply(arg: Node): Option[String] =
-      if (xsdAttribs.contains(arg.fullName)) arg.attributeVal("name") match {
-        case Some(name) => Some("@" + name)
-        case None => None
-      } else None
+      if (xsdAttribs.contains(arg.fullName) && isLocallyDefined(arg))
+        arg.attributeVal("name")
+      else None
   }
 
   object XsdNamedLocalNode {
     def unapply(arg: Node): Option[String] =
       XsdNamedElement.unapply(arg) orElse XsdNamedAttribute.unapply(arg)
   }
+  def isLocallyDefined(arg: Node) =
+    arg.attributeVal("ref").isEmpty && (
+      arg.attributeVal("type").isEmpty ||
+      arg.attributeVal("type").get.startsWith("xs:")
+    )
 
 }
 

@@ -15,9 +15,9 @@ import Util._
 class ShipOrderXsdSpec extends Specification { def is = s2"""
 
  Testing simple ShipOrder XSD
-   Testing reading in Russian Doll variant                $readAndFindRD
-   Testing reading in Salami Slice variant                $readAndFindSS
-   Testing reading in Venetian Blind variant              $readAndFindVB
+   Passed basics checks for Russian Doll variant           $readAndFindRD
+   Passed basics checks for Salami Slice variant           $readAndFindSS
+   Passed basics checks for Venetian Blind variant         $readAndFindVB
                                  """
 
 
