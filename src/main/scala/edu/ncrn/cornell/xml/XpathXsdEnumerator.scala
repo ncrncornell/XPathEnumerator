@@ -76,19 +76,18 @@ trait XpathXsdEnumerator extends XpathEnumerator {
 
   @tailrec
   final def enumerateXsd(
-    nodes: Seq[(Node, String)], pathData: List[(String, String)] = Nil,
-    refNodesVisited: List[Node] = Nil
+    nodes: Seq[(Node, String, List[Node])], pathData: List[(String, String)] = Nil
    ): List[(String, String)] = nodes.filter(x => nodeFilter(x._1)) match {
-    case (node, currentPath) +: rest =>
+    case (node, currentPath, refNodesVisited) +: rest =>
       val fullName = node.fullName // DEBUG
       node match {
         case XsdNamedType(label) =>
           //TODO probably need a better way to look up namespaces
           namedTypes += (label -> node)
+          val newNodes = pathifyXsdNodes(node.child, currentPath + "/")
           enumerateXsd( // Default
-            rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
-            pathData,
-            refNodesVisited
+            rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)),
+            pathData
           )
         case XsdNamedElement(label) =>
           //TODO probably need a better way to look up namespaces
@@ -97,10 +96,10 @@ trait XpathXsdEnumerator extends XpathEnumerator {
             if(node.child.isEmpty)
               List((cleanXpath(currentPath), node.attributes.asAttrMap.getOrElse("type", "DEBUG")))
             else Nil
+          val newNodes = pathifyXsdNodes(node.child, currentPath + "/")
           enumerateXsd( // Default
-            rest ++ pathifyXsdNodes(node.child, currentPath + "/"),
-            newElementData ::: pathData,
-            refNodesVisited
+            rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)),
+            newElementData ::: pathData
           )
         case XsdNamedAttribute(label) =>
           //val newAttributeData = List((currentPath + "/@" + label, "xs:string"))
@@ -109,41 +108,33 @@ trait XpathXsdEnumerator extends XpathEnumerator {
             if(node.child.isEmpty)
               List((cleanXpath(currentPath), node.attributes.asAttrMap.getOrElse("type", "DEBUG")))
             else Nil
-          enumerateXsd( // Default
-            rest,
-            newElementData ::: pathData,
-            refNodesVisited
-          )
+          enumerateXsd(rest, newElementData ::: pathData)
         case XsdNonLocalElement(label, nodeMaybe) => nodeMaybe match {
           case Success(refnode) =>
             if (refNodesVisited.contains(refnode)) {
-              enumerateXsd(// Skip adding refnode's children; recursive path
-                rest,
-                (cleanXpath(currentPath), "recursive!") :: pathData ,
-                refNodesVisited
-              )
+              // Skip adding refnode's children; recursive path
+              enumerateXsd(rest, (cleanXpath(currentPath), "recursive!") :: pathData)
             }
             else {
               val newElementData =
                 List((cleanXpath(currentPath), refnode.attributes.asAttrMap.getOrElse("type", "")))
+              val newNodes = pathifyXsdNodes(refnode.child, currentPath + "/")
               enumerateXsd(// Continue with refnode's children instead
-                rest ++ pathifyXsdNodes(refnode.child, currentPath + "/"),
-                newElementData ::: pathData, //TODO: remove adding newElementData here (DEBUG)
-                refnode :: refNodesVisited
+                rest ++ newNodes.map(nn => (nn._1, nn._2, refnode :: refNodesVisited)),
+                newElementData ::: pathData //TODO: remove adding newElementData here (DEBUG)
               )
             }
           case Failure(e) => //TODO: narrow this down to appropriate error
             enumerateXsd( // Not ready yet, let's try again later:
-              rest ++ Seq((node, currentPath)),
-              pathData,
-              refNodesVisited
+              rest ++ Seq((node, currentPath, refNodesVisited)),
+              pathData
             )
         }
         case _ =>
-          enumerateXsd( // Default; no path change
-            rest ++ pathifyXsdNodes(node.child, currentPath),
-            pathData,
-            refNodesVisited
+          val newNodes = pathifyXsdNodes(node.child, currentPath)
+            enumerateXsd( // Default; no path change
+            rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)),
+            pathData
           )
       }
     case Seq() => pathData
@@ -155,7 +146,8 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   ): List[(String, String)] = {
     namedTypes = Map()
     namedElements = Map()
-    enumerateXsd(pathifyXsdNodes(nodes.map(x => Utility.trim(x)), "/"))
+    val initNodes = pathifyXsdNodes(nodes.map(x => Utility.trim(x)), "/")
+    enumerateXsd(initNodes.map(nn => (nn._1, nn._2, Nil)))
   }
 
 }
@@ -170,15 +162,15 @@ object XpathXsdEnumerator {
 
   val xsdElems = List("xs:element")
   val xsdAttribs = List("xs:attribute")
-  val xsdComplexTypes = List("xs:complexType")
-  val xsdNamedNodes = xsdElems ::: xsdAttribs :: xsdComplexTypes
+  val xsdNamedTypes = List("xs:simpleType", "xs:complexType")
+  val xsdNamedNodes = xsdElems ::: xsdAttribs :: xsdNamedTypes
 
 
   object XsdNamedType {
     // Note that an unnamed ComplexType can only be used by the parent element,
     // so we don't need to recognize such unnamed cases here.
     def unapply(arg: Node): Option[String] =
-    if (xsdComplexTypes.contains(arg.fullName)) arg.attributeVal("name") else None
+    if (xsdNamedTypes.contains(arg.fullName)) arg.attributeVal("name") else None
   }
 
 
