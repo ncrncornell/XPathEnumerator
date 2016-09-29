@@ -116,17 +116,22 @@ trait XpathXsdEnumerator extends XpathEnumerator {
           )
         case XsdNonLocalElement(label, nodeMaybe) => nodeMaybe match {
           case Success(refnode) =>
-            if (refNodesVisited.contains(refnode)){
-              (currentPath, "recursive!") :: pathData // DEBUG
-              return pathData //TODO: remove return
+            if (refNodesVisited.contains(refnode)) {
+              enumerateXsd(// Skip adding refnode's children; recursive path
+                rest,
+                (cleanXpath(currentPath), "recursive!") :: pathData ,
+                refNodesVisited
+              )
             }
-            val newElementData =
+            else {
+              val newElementData =
                 List((cleanXpath(currentPath), refnode.attributes.asAttrMap.getOrElse("type", "")))
-            enumerateXsd( // Continue with refnode's children instead
-              rest ++ pathifyXsdNodes(refnode.child, currentPath + "/"),
-              newElementData ::: pathData, //TODO: remove adding newElementData here (DEBUG)
-              refnode :: refNodesVisited
-            )
+              enumerateXsd(// Continue with refnode's children instead
+                rest ++ pathifyXsdNodes(refnode.child, currentPath + "/"),
+                newElementData ::: pathData, //TODO: remove adding newElementData here (DEBUG)
+                refnode :: refNodesVisited
+              )
+            }
           case Failure(e) => //TODO: narrow this down to appropriate error
             enumerateXsd( // Not ready yet, let's try again later:
               rest ++ Seq((node, currentPath)),
