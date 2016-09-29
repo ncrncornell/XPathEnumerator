@@ -84,11 +84,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
         case XsdNamedType(label) =>
           //TODO probably need a better way to look up namespaces
           namedTypes += (label -> node)
-          val newNodes = pathifyXsdNodes(node.child, currentPath + "/")
-          enumerateXsd( // Default
-            rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)),
-            pathData
-          )
+          enumerateXsd(rest, pathData)
         case XsdNamedElement(label) =>
           //TODO probably need a better way to look up namespaces
           namedElements += (label -> node)
@@ -102,7 +98,6 @@ trait XpathXsdEnumerator extends XpathEnumerator {
             newElementData ::: pathData
           )
         case XsdNamedAttribute(label) =>
-          //val newAttributeData = List((currentPath + "/@" + label, "xs:string"))
           //TODO probably need a better way to look up namespaces
           val newElementData =
             if(node.child.isEmpty)
@@ -117,11 +112,20 @@ trait XpathXsdEnumerator extends XpathEnumerator {
             }
             else {
               val newElementData =
-                List((cleanXpath(currentPath), refnode.attributes.asAttrMap.getOrElse("type", "")))
+                List((cleanXpath(currentPath),
+                  refnode.attributes.asAttrMap.get("type") match {
+                    case Some(tpe) => tpe
+                    case _ => refnode.child.headOption match {
+                      case Some(child) if child.fullName == "xs:restriction" =>
+                        child.attributes.asAttrMap.getOrElse("base", "asdf")
+                      case _ => "1234"
+                    }
+                  }
+                ))
               val newNodes = pathifyXsdNodes(refnode.child, currentPath + "/")
-              enumerateXsd(// Continue with refnode's children instead
+              enumerateXsd( // Continue with refnode's children instead
                 rest ++ newNodes.map(nn => (nn._1, nn._2, refnode :: refNodesVisited)),
-                newElementData ::: pathData //TODO: remove adding newElementData here (DEBUG)
+                newElementData ::: pathData
               )
             }
           case Failure(e) => //TODO: narrow this down to appropriate error
@@ -196,16 +200,6 @@ object XpathXsdEnumerator {
     def unapply(arg: Node): Option[String] =
       XsdNamedElement.unapply(arg) orElse XsdNamedAttribute.unapply(arg)
   }
-
-
-
-  //            blocking{
-  //            while(!caller.namedElements.contains(arg.fullName)) {}
-  //            caller.namedElements(arg.fullName)
-  //          }
-
-
-
 
 }
 
