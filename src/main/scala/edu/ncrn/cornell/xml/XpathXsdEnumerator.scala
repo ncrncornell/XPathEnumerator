@@ -51,11 +51,18 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   //      XsdNamedLocalNode.unapply(arg) orElse XsdNonLocalElement.unapply(arg)
   //  }
 
-  def xsdXpathLabel(node: Node): String = node match {
-    case XsdNamedLocalNode(label) => label
-    case XsdNonLocalElement(nodeMaybe) => nodeMaybe._1
-    case _ => ""
+  def xsdXpathLabel(node: Node): String = {
+    val fullLName = node.fullName // DEBUG
+    val nodeStr = node.toString //DEBUG
+    node match {
+      case XsdNamedLocalNode(label) => label
+      case XsdNonLocalElement(nodeMaybe) =>
+        val test = nodeMaybe._1
+        test // DEBUG
+      case _ => ""
+    }
   }
+
 
   def pathifyXsdNodes(nodes: Seq[Node], parPath: String = "/")
   : Seq[(Node, String)] = {
@@ -73,6 +80,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
     refNodesVisited: List[Node] = Nil
    ): List[(String, String)] = nodes.filter(x => nodeFilter(x._1)) match {
     case (node, currentPath) +: rest =>
+      val fullName = node.fullName // DEBUG
       node match {
         case XsdNamedType(label) =>
           //TODO probably need a better way to look up namespaces
@@ -113,12 +121,10 @@ trait XpathXsdEnumerator extends XpathEnumerator {
               return pathData //TODO: remove return
             }
             val newElementData =
-              if(refnode.child.isEmpty)
-                List((cleanXpath(currentPath), refnode.attributes.asAttrMap.getOrElse("type", "DEBUG")))
-              else Nil
+                List((cleanXpath(currentPath), refnode.attributes.asAttrMap.getOrElse("type", "")))
             enumerateXsd( // Continue with refnode's children instead
               rest ++ pathifyXsdNodes(refnode.child, currentPath + "/"),
-              newElementData ::: pathData,
+              newElementData ::: pathData, //TODO: remove adding newElementData here (DEBUG)
               refnode :: refNodesVisited
             )
           case Failure(e) => //TODO: narrow this down to appropriate error
