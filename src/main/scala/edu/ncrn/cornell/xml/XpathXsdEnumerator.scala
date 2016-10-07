@@ -83,6 +83,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
    ): List[(String, String)] = nodes.filter(x => nodeFilter(x._1)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       val fullName = node.fullName // DEBUG
+      println(s"$fullName: $currentPath") // DEBUG
       node match {
         case XsdNamedType(label) =>
           //TODO probably need a better way to look up namespaces
