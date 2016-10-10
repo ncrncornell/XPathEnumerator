@@ -12,10 +12,10 @@ import scala.xml.XML
   */
 
 
-class DdiLifecycleSpec extends Specification { def is = s2"""
+class DdiCodebookSpec extends Specification { def is = s2"""
 
- Testing DDI-Lifecycle 3.2
-   Passed ICPSR2079variables.xml path check    $readAndFindDDILC32
+ Testing DDI-Codebook 2.5
+   Passed 4245.xml path check       $readAndFindDDILC32
  """
 
   val unwantedPrefixes = List("xsi")
@@ -28,10 +28,10 @@ class DdiLifecycleSpec extends Specification { def is = s2"""
   val xpathXmlEnumerator = new XpathXmlEnumerator {}
   val xpathXsdEnumerator = new XpathXsdEnumerator {}
 
-  val entryXsdFile = "/DDILifecycle3dot2/xsd/instance.xsd"
+  val entryXsdFile = "/DDICodebook2dot5/xsd/codebook.xsd"
   val xmlTestData = xpathXmlEnumerator.enumerate(XML.load(
     this.getClass.getResourceAsStream(
-      "/DDILifecycle3dot2/xml/ICPSR2079variables.xml"
+      "/DDICodebook2dot5/xml/4245.xml"
     ))).filter(x => xmlXpathFilter(x._1, unwantedPrefixes))
 
   val xmlTestDataNonUniq = toWildCard(xmlTestData.map{x => x._1})
