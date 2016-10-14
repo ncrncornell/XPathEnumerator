@@ -25,20 +25,19 @@ class DdiLifecycleSpec extends Specification { def is = s2"""
     xpath.contains("/" + x + ":") || xpath.contains("/@" + x + ":")
   )
 
-  val xpathXmlEnumerator = new XpathXmlEnumerator {}
-  val xpathXsdEnumerator = new XpathXsdEnumerator {}
-
-  val entryXsdFile = "/DDILifecycle3dot2/xsd/instance.xsd"
-  val xmlTestData = xpathXmlEnumerator.enumerate(XML.load(
+  val xpathXmlEnumerator = new XpathXmlEnumerator(XML.load(
     this.getClass.getResourceAsStream(
       "/DDILifecycle3dot2/xml/ICPSR2079variables.xml"
-    ))).filter(x => xmlXpathFilter(x._1, unwantedPrefixes))
+    )
+  ))
+
+  val entryXsdFile = "/DDILifecycle3dot2/xsd/instance.xsd"
+  val xmlTestData = xpathXmlEnumerator.enumSimple
+    .filter(x => xmlXpathFilter(x._1, unwantedPrefixes))
 
   val xmlTestDataNonUniq = toWildCard(xmlTestData.map{x => x._1})
 
-  val readAndFindFromFile = makePairedTester(
-    xpathXsdEnumerator, xmlTestDataNonUniq
-  )
+  val readAndFindFromFile = makePairedTester(xmlTestDataNonUniq)
   val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile) must beTrue
 
 }

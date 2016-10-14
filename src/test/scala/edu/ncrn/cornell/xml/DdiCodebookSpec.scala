@@ -25,20 +25,17 @@ class DdiCodebookSpec extends Specification { def is = s2"""
     xpath.contains("/" + x + ":") || xpath.contains("/@" + x + ":")
   )
 
-  val xpathXmlEnumerator = new XpathXmlEnumerator {}
-  val xpathXsdEnumerator = new XpathXsdEnumerator {}
+  val xpathXmlEnumerator = new XpathXmlEnumerator(XML.load(
+    this.getClass.getResourceAsStream("/DDICodebook2dot5/xml/4245.xml")
+  ))
 
   val entryXsdFile = "/DDICodebook2dot5/xsd/codebook.xsd"
-  val xmlTestData = xpathXmlEnumerator.enumerate(XML.load(
-    this.getClass.getResourceAsStream(
-      "/DDICodebook2dot5/xml/4245.xml"
-    ))).filter(x => xmlXpathFilter(x._1, unwantedPrefixes))
+  val xmlTestData = xpathXmlEnumerator.enumSimple
+    .filter(x => xmlXpathFilter(x._1, unwantedPrefixes))
 
   val xmlTestDataNonUniq = toWildCard(xmlTestData.map{x => x._1})
 
-  val readAndFindFromFile = makePairedTester(
-    xpathXsdEnumerator, xmlTestDataNonUniq
-  )
+  val readAndFindFromFile = makePairedTester(xmlTestDataNonUniq)
   val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile) must beTrue
 
 }

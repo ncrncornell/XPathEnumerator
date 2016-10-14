@@ -23,10 +23,10 @@ class UtilSpec extends Specification { def is = s2"""
   val twoIndices = "/shiporder/item[1]/quantity[2]"
   val indicesRemoved = "/shiporder/item/quantity"
 
-  def oneIndexSub = toWildCard(oneIndex) must_== indicesRemoved
-  def twoIndicesSub = toWildCard(twoIndices) must_== indicesRemoved
+  def oneIndexSub = toWildCard(List(oneIndex)) === indicesRemoved
+  def twoIndicesSub = toWildCard(List(twoIndices)) === indicesRemoved
 
   val condenseTwo = toWildCard(List(oneIndex, twoIndices))
-  def condenseTwoToOne = condenseTwo.size must_== 1
-  def condenseTwoCorrect = condenseTwo.head must_== indicesRemoved
+  def condenseTwoToOne = condenseTwo.size must_=== 1
+  def condenseTwoCorrect = condenseTwo.head must_=== indicesRemoved
 }

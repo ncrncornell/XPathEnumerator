@@ -2,6 +2,7 @@ package edu.ncrn.cornell.xml
 
 import scala.annotation.tailrec
 import scala.xml.{Node, Utility}
+import scalaz._, Scalaz._
 import ScalaXmlExtra._
 import XpathEnumerator._
 import XpathXsdEnumerator._
@@ -19,20 +20,20 @@ import scala.util.{Failure, Success, Try}
 //TODO: ##local and ##targetNamespace namespaces : http://www.w3schools.com/xml/el_any.asp
 //TODO: Need to flesh out possibilities for anyAttribute anyURI, etc.
 
-// Note: do not use concurrently!
-// TODO: make safe by passing around all state as a state object
-
-trait XpathXsdEnumerator extends XpathEnumerator {
+// TODO: make safe by passing around all state as a state object, with Shapeless Lenses for updates:
+// http://stackoverflow.com/questions/3900307/cleaner-way-to-update-nested-structures
+// http://stackoverflow.com/questions/9003874/idiomatic-way-to-update-value-in-a-map-based-on-previous-value
+class XpathXsdEnumerator(
+  protected val nodesIn: Seq[Node]
+) extends XpathEnumerator {
 
   //
   // Maps from an XPath to a reusable (named) element or type;
   // used for scope determination and node lookup
   //
-  var namedTypes: XpathNodeMap = Map()
-  var namedElements: XpathNodeMap = Map()
-  var namedAttributes: XpathNodeMap = Map()
-
-  var nonEmpty: Boolean = true
+  var namedTypes: XpathNodeMap = Map[String, Node]()
+  var namedElements: XpathNodeMap = Map[String, Node]()
+  var namedAttributes: XpathNodeMap = Map[String, Node]()
 
   object XsdNamedType {
     // Note that an unnamed ComplexType can only be used by the parent element,
@@ -73,14 +74,15 @@ trait XpathXsdEnumerator extends XpathEnumerator {
 
 
   sealed abstract class NodeWrap(arg: Node)
-  case class NodeWrapNoCarry(arg: Node) extends NodeWrap(arg)
-  case class NodeWrapCarry(arg: Node, label: String) extends NodeWrap(arg)
+  sealed case class NodeWrapNoCarry(arg: Node) extends NodeWrap(arg)
+  sealed case class NodeWrapCarry(arg: Node, label: String) extends NodeWrap(arg)
 
 
+  @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
   object XsdNonLocalElement {
 
-    def unapplyMatcher(arg: Node, label: String = ""): Option[(String, Try[Node])] = {
-      def getLabel(elseWise: String) = if (label != "") label else elseWise
+    def unapplyMatcher(arg: Node, label: String): Option[(String, Try[Node])] = {
+      def getLabel(elseWise: String) = if (label =/= "") label else elseWise
       if (xsdDataNodes.contains(arg.fullName)) arg.attributes.asAttrMap match {
         case attrMap if attrMap.contains("ref") && namedAttributes.contains(attrMap("ref")) =>
           Some(getLabel(attrMap("ref")), Try(namedAttributes(attrMap("ref"))))
@@ -105,7 +107,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
     def unapply(arg0: NodeWrap): Option[(String, Try[Node])] = {
       arg0 match {
         case NodeWrapNoCarry(arg: Node) =>
-          val last = unapplyMatcher(arg)
+          val last = unapplyMatcher(arg, "")
           last match {
             case Some((labelCarry: String, Success(node: Node))) if !isLocallyDefined(node) =>
               // Keep chasing the reference
@@ -137,7 +139,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
 
 
 
-  def pathifyXsdNodes(nodes: Seq[Node], parPath: String = "/")
+  def pathifyXsdNodes(nodes: Seq[Node], parPath: String)
   : Seq[(Node, String)] = {
     nodes.groupBy(nn => parPath + xsdXpathLabel(nn)).toList.flatMap{
       case(xpath, labNodes) =>
@@ -149,7 +151,7 @@ trait XpathXsdEnumerator extends XpathEnumerator {
 
   @tailrec
   final def enumerateXsd(
-    nodes: Seq[(Node, String, List[Node])], pathData: List[(String, String)] = Nil
+    nodes: Seq[(Node, String, List[Node])], pathData: List[(String, String)]
    ): List[(String, String)] = nodes.filter(x => nodeFilter(x._1)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       node match {
@@ -221,21 +223,20 @@ trait XpathXsdEnumerator extends XpathEnumerator {
   }
 
   def enumerate(
-    nodes: Seq[Node], nonEmpty: Boolean = true,
-    newNodeFilter: Node => Boolean = _ => true
+    nonEmpty: Boolean,
+    newNodeFilter: Node => Boolean
   ): List[(String, String)] = {
-    namedTypes = Map()
-    namedElements = Map()
-    namedAttributes = Map()
     this.nonEmpty = nonEmpty
-    val initNodes = pathifyXsdNodes(nodes.map(x => Utility.trim(x)), "/")
-    enumerateXsd(initNodes.map(nn => (nn._1, nn._2, Nil)))
+    this.nodeFilter = newNodeFilter
+    val initNodes = pathifyXsdNodes(nodesIn.map(x => Utility.trim(x)), "/")
+    enumerateXsd(initNodes.map(nn => (nn._1, nn._2, Nil)), Nil)
   }
 
 }
 
 
 object XpathXsdEnumerator {
+
 
   type XpathNodeMap = Map[String, Node]
 
@@ -251,7 +252,7 @@ object XpathXsdEnumerator {
   def isLocallyDefined(arg: Node) =
     arg.attributeVal("ref").isEmpty && (
       arg.attributeVal("type").isEmpty ||
-      arg.attributeVal("type").get.startsWith("xs:")
+      arg.attributeVal("type").getOrElse("").startsWith("xs:")
     )
 
 }

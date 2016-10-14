@@ -23,9 +23,10 @@ object ScalaXmlExtra {
       *         like Node.nameToString but doesnt' require passing
       *         a StringBuilder
       */
-    def fullName: String =
-      if (node.prefix != null) node.prefix + ":" + node.label
-      else node.label
+    def fullName: String = Option(node.prefix) match {
+      case Some(pfx) => pfx + ":" + node.label
+      case None => node.label
+    }
 
     def hasLabel: Boolean = !node.label.trim.isEmpty
 
