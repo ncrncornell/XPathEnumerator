@@ -35,6 +35,8 @@ class XpathXsdEnumerator(
   var namedElements: XpathNodeMap = Map[String, Node]()
   var namedAttributes: XpathNodeMap = Map[String, Node]()
 
+  // val debugger = new XsdDebugger()
+
   object XsdNamedType {
     // Note that an unnamed ComplexType can only be used by the parent element,
     // so we don't need to recognize such unnamed cases here.
@@ -86,7 +88,7 @@ class XpathXsdEnumerator(
       if (xsdDataNodes.contains(arg.fullName)) arg.attributes.asAttrMap match {
         case attrMap if attrMap.contains("ref") && namedAttributes.contains(attrMap("ref")) =>
           Some(getLabel(attrMap("ref")), Try(namedAttributes(attrMap("ref"))))
-        case attrMap if attrMap.contains("ref") =>
+        case attrMap if attrMap.contains("ref") && namedElements.contains(attrMap("ref")) =>
           Some(getLabel(attrMap("ref")), Try(namedElements(attrMap("ref"))))
         case attrMap if attrMap.contains("type") =>
           //TODO: probably an oversimplification; may need a list of simple types
@@ -147,13 +149,12 @@ class XpathXsdEnumerator(
     }
   }
 
-  //implicit val xpathXsdEnumerator: XpathXsdEnumerator = this
-
   @tailrec
   final def enumerateXsd(
     nodes: Seq[(Node, String, List[Node])], pathData: List[(String, String)]
    ): List[(String, String)] = nodes.filter(x => nodeFilter(x._1)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
+      // debugger.addPath(currentPath)
       node match {
         case XsdNamedType(label) =>
           enumerateXsd(rest, pathData)
