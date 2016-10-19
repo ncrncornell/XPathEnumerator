@@ -20,8 +20,9 @@ lazy val root = (project in file(".")).
       "net.sf.saxon" % "Saxon-HE" % "9.7.0-8" % "it,test"
     )//,
     // other settings here
+    //Note: Wart.Nothing is good in principle but too many false positives IMO
     // TODO: move Vars from warnings to errors
     ,wartremoverWarnings += Wart.Var
     //,wartremoverErrors ++= Warts.unsafe
-    ,wartremoverErrors ++= Warts.allBut(Wart.Var)
+    ,wartremoverErrors ++= Warts.allBut(Wart.Var, Wart.Nothing)
   )
