@@ -2,7 +2,7 @@ package edu.ncrn.cornell.xml
 
 import scala.annotation.tailrec
 import scala.xml.{Node, Utility}
-import scalaz._, Scalaz._
+//import scalaz._, Scalaz._
 import shapeless._
 import ScalaXmlExtra._
 import XpathEnumerator._
@@ -61,7 +61,12 @@ class XpathXsdEnumerator(
   }
   import EnumArgsObj._
 
-  sealed abstract class NodeWrapAbstract(node: Node, eArgs: EnumArgs)
+  sealed abstract class NodeWrapAbstract(node: Node, eArgs: EnumArgs) {
+    // Otherwise recursing over eArgs.toString will result in OOMs in
+    // e.g., debuggers
+    override def toString = s"node = ${node.toString()}"
+  }
+
   sealed case class NodeWrap(node: Node, eArgs: EnumArgs)
     extends NodeWrapAbstract(node, eArgs) {
     def child = node.node.child.map{ch => NodeWrap(ch, eArgs)}
@@ -139,15 +144,17 @@ class XpathXsdEnumerator(
 
     def unapplyMatcher(node: NodeWrap, label: String): Option[(String, Try[NodeWrap])] = {
       def getLabel(elseWise: String) = if (label.length < 1 && label.length > -1) elseWise else label
-      if (xsdDataNodes.contains(node.node.fullName)) node.node.attributes.asAttrMap match {
+      node.node.attributes.asAttrMap match {
         case attrMap
-          if attrMap.contains("ref") && node.eArgs.namedAttributes.contains(attrMap("ref")) =>
+          if xsdAttribs.contains(node.node.fullName) && attrMap.contains("ref")
+            && node.eArgs.namedAttributes.contains(attrMap("ref")) =>
           Some(
             getLabel(attrMap("ref")),
             Try(NodeWrap(node.eArgs.namedAttributes(attrMap("ref")).node, node.eArgs))
           )
         case attrMap
-          if attrMap.contains("ref") && node.eArgs.namedElements.contains(attrMap("ref")) =>
+          if xsdElems.contains(node.node.fullName) && attrMap.contains("ref")
+            && node.eArgs.namedElements.contains(attrMap("ref")) =>
           Some(
             getLabel(attrMap("ref")),
             Try(NodeWrap(node.eArgs.namedElements(attrMap("ref")).node, node.eArgs))
@@ -161,7 +168,6 @@ class XpathXsdEnumerator(
           )
         case _ => None
       }
-      else None
     }
 
     //TODO: may need to match on (Node, XPath: String)
@@ -226,6 +232,9 @@ class XpathXsdEnumerator(
   : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       // debugger.addPath(currentPath)
+      if (currentPath == "/codeBook/stdyDscr/method") {
+        println("here we are!")
+      }
       node match {
         case XsdNamedType(label, eArgsNew) =>
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
@@ -273,7 +282,7 @@ class XpathXsdEnumerator(
                     case _ if refnode.node.attributes.asAttrMap.contains("type") =>
                       refnode.node.attributes.asAttrMap("type")
                     case _ => refnode.node.child.headOption match {
-                      case Some(child) if child.fullName === "xs:restriction" =>
+                      case Some(child) if child.fullName == "xs:restriction" =>
                         child.attributes.asAttrMap.getOrElse("base", "asdf")
                       case _ => ""
                     }
