@@ -22,7 +22,7 @@ lazy val root = (project in file(".")).
     // other settings here
     //Note: Wart.Nothing is good in principle but too many false positives IMO
     // TODO: move Vars from warnings to errors
-    ,wartremoverWarnings += Wart.Var
     //,wartremoverErrors ++= Warts.unsafe
-    ,wartremoverErrors ++= Warts.allBut(Wart.Var, Wart.Nothing)
+    // ,wartremoverWarnings += Wart.Var //FIXME, DEBUG -> re-enable
+    // ,wartremoverErrors ++= Warts.allBut(Wart.Var, Wart.Nothing) //FIXME, DEBUG -> re-enable
   )

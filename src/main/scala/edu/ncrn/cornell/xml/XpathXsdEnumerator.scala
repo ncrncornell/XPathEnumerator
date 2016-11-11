@@ -2,7 +2,7 @@ package edu.ncrn.cornell.xml
 
 import scala.annotation.tailrec
 import scala.xml.{Node, Utility}
-import scalaz._, Scalaz._
+//import scalaz._, Scalaz._
 import shapeless._
 import ScalaXmlExtra._
 import XpathEnumerator._
@@ -226,6 +226,9 @@ class XpathXsdEnumerator(
   : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       // debugger.addPath(currentPath)
+      if (currentPath == "/codeBook/stdyDscr/method") {
+        println("here we are!")
+      }
       node match {
         case XsdNamedType(label, eArgsNew) =>
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
@@ -273,7 +276,7 @@ class XpathXsdEnumerator(
                     case _ if refnode.node.attributes.asAttrMap.contains("type") =>
                       refnode.node.attributes.asAttrMap("type")
                     case _ => refnode.node.child.headOption match {
-                      case Some(child) if child.fullName === "xs:restriction" =>
+                      case Some(child) if child.fullName == "xs:restriction" =>
                         child.attributes.asAttrMap.getOrElse("base", "asdf")
                       case _ => ""
                     }
