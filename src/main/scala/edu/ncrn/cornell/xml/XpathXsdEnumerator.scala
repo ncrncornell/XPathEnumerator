@@ -155,6 +155,9 @@ class XpathXsdEnumerator(
    ): List[(String, String)] = nodes.filter(x => nodeFilter(x._1)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       // debugger.addPath(currentPath)
+      if (currentPath === "/codeBook/stdyDscr/method") {
+        println("here we are!")
+      }
       node match {
         case XsdNamedType(label) =>
           enumerateXsd(rest, pathData)
