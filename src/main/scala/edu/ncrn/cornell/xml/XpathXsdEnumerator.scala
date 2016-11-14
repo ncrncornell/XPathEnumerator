@@ -2,13 +2,16 @@ package edu.ncrn.cornell.xml
 
 import scala.annotation.tailrec
 import scala.xml.{Node, Utility}
-//import scalaz._, Scalaz._
 import shapeless._
 import ScalaXmlExtra._
 import XpathEnumerator._
 import XpathXsdEnumerator._
 
 import scala.util.{Failure, Success, Try}
+
+import cats._
+import cats.instances.all._
+import cats.syntax.eq._
 
 
 /**
@@ -232,9 +235,6 @@ class XpathXsdEnumerator(
   : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       // debugger.addPath(currentPath)
-      if (currentPath == "/codeBook/stdyDscr/method") {
-        println("here we are!")
-      }
       node match {
         case XsdNamedType(label, eArgsNew) =>
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
@@ -282,12 +282,15 @@ class XpathXsdEnumerator(
                     case _ if refnode.node.attributes.asAttrMap.contains("type") =>
                       refnode.node.attributes.asAttrMap("type")
                     case _ => refnode.node.child.headOption match {
-                      case Some(child) if child.fullName == "xs:restriction" =>
+                      case Some(child) if child.fullName === "xs:restriction" =>
                         child.attributes.asAttrMap.getOrElse("base", "asdf")
                       case _ => ""
                     }
                   }
-                  )).filter(ne => !nonEmpty || ne._2.nonEmpty)
+                  )).filter(ne => !nonEmpty || ne._2.nonEmpty) :::
+                  (if (refnode.node.attributeVal("mixed").getOrElse("false").toBoolean)
+                    List((cleanXpath(currentPath), "xs:string"))
+                  else Nil)
               val eArgsNew = updateElems(refnode.eArgs, newNamedElems: _*)
               val newNodes = pathifyXsdNodes(
                 refnode.child.map(ch => NodeWrap(ch.node, eArgsNew)),

@@ -1,6 +1,8 @@
 package edu.ncrn.cornell.xml
 
-import scalaz._, Scalaz._
+import cats._
+import cats.instances.all._
+import cats.syntax.eq._
 
 import scala.xml.Node
 
@@ -56,7 +58,7 @@ object XpathEnumerator{
     nodes: Seq[Node], parPath: String, nonEmpty: Boolean
   ): Seq[(Node, String)] = {
     def nodeNotEmpty(node: Node) =
-      if (nonEmpty) node.text =/= "" else true
+      if (nonEmpty) node.text =!= "" else true
     nodes.filter(nodeNotEmpty).groupBy(nn => parPath + nn.label).toList.flatMap{
       case(xpath, labNodes) =>
         def xindex(index: Int) = if (labNodes.size > 1) s"[${index + 1}]" else ""
