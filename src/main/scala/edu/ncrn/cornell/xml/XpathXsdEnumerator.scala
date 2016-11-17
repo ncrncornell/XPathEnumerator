@@ -207,6 +207,21 @@ class XpathXsdEnumerator(
     }
   }
 
+  object XsdExtension {
+    // XsdExtension is really a special case of a non-local node;
+    // it is special in that it is a unon of the current children and the
+    // reference children
+    def unapply(node: NodeWrap): Option[Try[NodeWrap]] =
+    //TODO: supporting extension seems  to have incurred a noticeable
+    //TODO: performance hit, try to optimize
+      if (node.node.fullName === "xs:extension")
+        node.node.attributeVal("base") map {baseType =>
+          Try(node.eArgs.namedTypes(baseType))
+        }
+      else None
+
+  }
+
   def xsdXpathLabel(node: NodeWrap): String = node match {
     case XsdNamedElement(label, eArgs) => label
     case XsdNamedAttribute(label, eArgs) => "@" + label
@@ -235,9 +250,6 @@ class XpathXsdEnumerator(
   : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       // debugger.addPath(currentPath)
-      if (currentPath === "/codeBook/stdyDscr/stdyInfo/sumDscr/collDate/@event") {
-        println("we are here")
-      }
       node match {
         case XsdNamedType(label, eArgsNew) =>
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
@@ -274,6 +286,13 @@ class XpathXsdEnumerator(
             }
           val restNew = rest.map(nn => nodeArgLens.modify(nn)(updateAttribs(_, label -> node)))
           enumerateXsd(restNew, newElementData ::: pathData)
+        case XsdExtension(Success(refNode)) =>
+          // Similar to default case except we add new nodes from reference
+          val newNodes = pathifyXsdNodes(node.child, currentPath) ++
+            pathifyXsdNodes(refNode.child , currentPath)
+          enumerateXsd(
+          rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)), pathData
+          )
         case XsdNonLocalElement(label, nodeMaybe) => nodeMaybe match {
           case Success(refnode) =>
             if (refNodesVisited.contains(refnode.node)) {
@@ -285,7 +304,6 @@ class XpathXsdEnumerator(
                 if (xsdNamedTypes.contains(refnode.node.fullName) &&
                   refnode.node.attributes.asAttrMap.contains("name")) {
                 // This will be a named element that forwards to some other node
-                //namedElements += (label -> refnode)
                   Seq(label -> refnode)
                 }
                 else Seq.empty
