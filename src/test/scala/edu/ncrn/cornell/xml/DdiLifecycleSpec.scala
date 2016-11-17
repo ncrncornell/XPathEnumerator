@@ -1,6 +1,6 @@
 package edu.ncrn.cornell.xml
 
-import edu.ncrn.cornell.xml.Util._
+import Util._
 import org.specs2._
 
 import scala.xml.XML

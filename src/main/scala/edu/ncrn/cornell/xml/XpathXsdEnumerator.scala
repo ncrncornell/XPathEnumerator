@@ -235,6 +235,9 @@ class XpathXsdEnumerator(
   : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       // debugger.addPath(currentPath)
+      if (currentPath === "/codeBook/stdyDscr/stdyInfo/sumDscr/collDate/@event") {
+        println("we are here")
+      }
       node match {
         case XsdNamedType(label, eArgsNew) =>
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
@@ -258,7 +261,17 @@ class XpathXsdEnumerator(
           val newElementData =
             if(node.child.isEmpty)
               List((cleanXpath(currentPath), node.node.attributes.asAttrMap.getOrElse("type", "DEBUG")))
-            else Nil
+            else node.child.find(child => child.node.fullName === "xs:simpleType") match {
+              case Some(smplTpeNode) => smplTpeNode.node.child
+                  .find(gchild => gchild.node.fullName === "xs:restriction") match {
+                case Some(baseTpeNode) => List((
+                  cleanXpath(currentPath),
+                  baseTpeNode.attributes.asAttrMap.getOrElse("base", "asdf")
+                  ))
+                case None => Nil
+              }
+              case None => Nil
+            }
           val restNew = rest.map(nn => nodeArgLens.modify(nn)(updateAttribs(_, label -> node)))
           enumerateXsd(restNew, newElementData ::: pathData)
         case XsdNonLocalElement(label, nodeMaybe) => nodeMaybe match {

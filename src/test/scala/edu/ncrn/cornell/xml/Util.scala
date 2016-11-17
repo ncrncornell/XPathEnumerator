@@ -7,7 +7,7 @@ import scala.xml.XML
   */
 object Util {
 
-  val elementIndex= "\\[\\d\\]".r
+  val elementIndex= "\\[\\d+\\]".r
 
   /**
     * The same as the singleton variant, but removes resulting duplicates
