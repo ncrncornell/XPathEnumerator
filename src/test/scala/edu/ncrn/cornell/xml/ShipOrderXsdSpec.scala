@@ -18,6 +18,7 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
    Passed basics checks for Russian Doll variant           $readAndFindRD
    Passed basics checks for Salami Slice variant           $readAndFindSS
    Passed basics checks for Venetian Blind variant         $readAndFindVB
+   Passed basics checks for Venetian Blind Group variant   $readAndFindVBG
                                  """
 
   val unwantedPrefixes = List("xsi")
@@ -34,6 +35,7 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
   val xsdRussianDollFile = "/shiporder.xsd"
   val xsdSalamiSliceFile = "/shiporder2.xsd"
   val xsdVenetianBlindFile = "/shiporder3.xsd"
+  val xsdVbWithGroupsFile = "/shiporder4.xsd"
 
   val xmlTestData = xpathXmlEnumerator.enumSimple
     .filter(x => xmlXpathFilter(x._1, unwantedPrefixes))
@@ -45,6 +47,8 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
   val readAndFindRD = readAndFindFromFile(xsdRussianDollFile) must beTrue
   val readAndFindSS = readAndFindFromFile(xsdSalamiSliceFile) must beTrue
   val readAndFindVB = readAndFindFromFile(xsdVenetianBlindFile) must beTrue
+  val readAndFindVBG = readAndFindFromFile(xsdVbWithGroupsFile) must beTrue
+
 
 }
 

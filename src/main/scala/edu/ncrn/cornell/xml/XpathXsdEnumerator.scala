@@ -101,7 +101,7 @@ class XpathXsdEnumerator(
   //var namedElements: XpathNodeMap = Map[String, Node]()
   //var namedAttributes: XpathNodeMap = Map[String, Node]()
 
-  // val debugger = new XsdDebugger()
+  val debugger = new XsdDebugger()
 
   object XsdNamedType {
     // Note that an unnamed ComplexType can only be used by the parent element,
@@ -207,16 +207,25 @@ class XpathXsdEnumerator(
     }
   }
 
-  object XsdExtension {
+  object XsdUnion {
     // XsdExtension is really a special case of a non-local node;
     // it is special in that it is a unon of the current children and the
     // reference children
     def unapply(node: NodeWrap): Option[Try[NodeWrap]] =
     //TODO: supporting extension seems  to have incurred a noticeable
-    //TODO: performance hit, try to optimize
+    //TODO: performance hit, try to optimize.
+    //TODO: (this mainly appeaers to be a result of high-memory use)
       if (node.node.fullName === "xs:extension")
         node.node.attributeVal("base") map {baseType =>
           Try(node.eArgs.namedTypes(baseType))
+        }
+      else if (node.node.fullName === "xs:attributeGroup")
+        node.node.attributeVal("ref") map {group =>
+          Try(node.eArgs.namedTypes(group))
+        }
+      else if (node.node.fullName === "xs:group")
+        node.node.attributeVal("ref") map { group =>
+          Try(node.eArgs.namedTypes(group))
         }
       else None
 
@@ -249,7 +258,8 @@ class XpathXsdEnumerator(
   final def enumerateXsd(nodes: Seq[(NodeWrap, String, List[Node])], pathData: List[(String, String)])
   : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
-      // debugger.addPath(currentPath)
+      debugger.addPath(currentPath)
+      //println(s"current path is: $currentPath of type ${node.node.fullName}") // DEBUG
       node match {
         case XsdNamedType(label, eArgsNew) =>
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
@@ -286,7 +296,7 @@ class XpathXsdEnumerator(
             }
           val restNew = rest.map(nn => nodeArgLens.modify(nn)(updateAttribs(_, label -> node)))
           enumerateXsd(restNew, newElementData ::: pathData)
-        case XsdExtension(Success(refNode)) =>
+        case XsdUnion(Success(refNode)) =>
           // Similar to default case except we add new nodes from reference
           val newNodes = pathifyXsdNodes(node.child, currentPath) ++
             pathifyXsdNodes(refNode.child , currentPath)
@@ -372,7 +382,9 @@ object XpathXsdEnumerator {
 
   val xsdElems = List("xs:element")
   val xsdAttribs = List("xs:attribute")
-  val xsdNamedTypes = List("xs:simpleType", "xs:complexType")
+  //TODO: probably this is a bad idea due to potential name clash between types/groups:
+  val xsdNamedTypes = List("xs:simpleType", "xs:complexType", "xs:attributeGroup", "xs:group")
+  val xsdUnions = List("xs:attributeGroup", "xs:group", "xs:extension")
   val xsdDataNodes = xsdElems ::: xsdAttribs
 
 
