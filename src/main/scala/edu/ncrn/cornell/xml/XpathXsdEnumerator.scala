@@ -42,9 +42,9 @@ class XpathXsdEnumerator(
      namedTypes: XpathNodeMap
    )
 
-    val namedAttribLens = lens[EnumArgs] >> 'namedAttributes
-    val namedElementsLens = lens[EnumArgs] >> 'namedElements
-    val namedTypesLens = lens[EnumArgs] >> 'namedTypes
+    private val namedAttribLens = lens[EnumArgs] >> 'namedAttributes
+    private val namedElementsLens = lens[EnumArgs] >> 'namedElements
+    private val namedTypesLens = lens[EnumArgs] >> 'namedTypes
 
     //TODO: why doesn't the Lens .modify method work?
     def updateAttribs(enumArgs: EnumArgs, namedAttributes: XpathNodeMapEntry*) =
@@ -86,7 +86,7 @@ class XpathXsdEnumerator(
   @SuppressWarnings(Array(
     "org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Nothing"
   ))
-  object NodeRemaining {
+  private object NodeRemaining {
     val nodeLens = lens[NodeRemaining] >> '_1
     val nodeArgLens = lens[NodeRemaining] >> '_1 >> 'eArgs
   }
@@ -385,7 +385,7 @@ object XpathXsdEnumerator {
   //TODO: probably this is a bad idea due to potential name clash between types/groups:
   val xsdNamedTypes = List("xs:simpleType", "xs:complexType", "xs:attributeGroup", "xs:group")
   val xsdUnions = List("xs:attributeGroup", "xs:group", "xs:extension")
-  val xsdDataNodes = xsdElems ::: xsdAttribs
+  val xsdDataNodes: List[String] = xsdElems ::: xsdAttribs
 
 
   def isLocallyDefined(arg: Node) =
