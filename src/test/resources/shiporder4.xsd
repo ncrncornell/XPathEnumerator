@@ -32,10 +32,12 @@
     </xs:complexType>
 
     <xs:group name="ITEMELEMS">
-        <xs:element name="title" type="stringtype"/>
-        <xs:element name="note" type="stringtype" minOccurs="0"/>
-        <xs:element name="quantity" type="inttype"/>
-        <xs:element name="price" type="dectype"/>
+        <xs:sequence>
+            <xs:element name="title" type="stringtype"/>
+            <xs:element name="note" type="stringtype" minOccurs="0"/>
+            <xs:element name="quantity" type="inttype"/>
+            <xs:element name="price" type="dectype"/>
+        </xs:sequence>
     </xs:group>
 
     <xs:complexType name="itemtype">
