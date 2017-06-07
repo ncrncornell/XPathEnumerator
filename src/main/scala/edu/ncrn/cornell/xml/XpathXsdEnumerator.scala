@@ -259,10 +259,12 @@ class XpathXsdEnumerator(
   : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       debugger.addPath(currentPath)
+      debugger.progressCount(1000)
       //println(s"current path is: $currentPath of type ${node.node.fullName}") // DEBUG
       node match {
         case XsdNamedType(label, eArgsNew) =>
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
+          if (currentPath === "/") {println("calling enumerateXsd at XsdNamedType")} // DEBUG
           enumerateXsd(restNew, pathData)
         case XsdNamedElement(label, eArgsNew) =>
           val newElementData =
@@ -274,6 +276,7 @@ class XpathXsdEnumerator(
             node.child.map(ch => NodeWrap(ch.node, eArgsNew)), currentPath + "/"
           )
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
+          if (currentPath === "/") {println("calling enumerateXsd at XsdNamedElement")} // DEBUG
           enumerateXsd(
             restNew ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)),
             newElementData ::: pathData
@@ -295,17 +298,20 @@ class XpathXsdEnumerator(
               case None => Nil
             }
           val restNew = rest.map(nn => nodeArgLens.modify(nn)(updateAttribs(_, label -> node)))
+          if (currentPath === "/") {println("calling enumerateXsd at XsdNamedAttribute")} // DEBUG
           enumerateXsd(restNew, newElementData ::: pathData)
         case XsdUnion(Success(refNode)) =>
           // Similar to default case except we add new nodes from reference
           val newNodes = pathifyXsdNodes(node.child, currentPath) ++
             pathifyXsdNodes(refNode.child , currentPath)
+          if (currentPath === "/") {println("calling enumerateXsd at XsdUnion")} // DEBUG
           enumerateXsd(
           rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)), pathData
           )
         case XsdNonLocalElement(label, nodeMaybe) => nodeMaybe match {
           case Success(refnode) =>
             if (refNodesVisited.contains(refnode.node)) {
+              if (currentPath === "/") {println("calling enumerateXsd at XsdNonLocalElement")} // DEBUG
               // Skip adding refnode's children; recursive path
               enumerateXsd(rest, (cleanXpath(currentPath), "recursive!") :: pathData)
             }
@@ -339,18 +345,21 @@ class XpathXsdEnumerator(
               )
               val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
               // Continue with refnode's children instead
+              if (currentPath === "/") {println("calling enumerateXsd at XsdNonLocalElement (2)")} // DEBUG
               enumerateXsd(
                 restNew ++ newNodes.map(nn => (nn._1, nn._2, refnode.node :: refNodesVisited)),
                 newElementData ::: pathData
               )
             }
           case Failure(e) => //TODO: narrow this down to appropriate error
+            if (currentPath === "/") {println("calling enumerateXsd at XsdNonLocalElement (3)")} // DEBUG
             // Not ready yet, let's try again later:
             enumerateXsd(rest ++ Seq((node, currentPath, refNodesVisited)), pathData)
         }
         case _ =>
           // Default; no path change
           val newNodes = pathifyXsdNodes(node.child, currentPath)
+          if (currentPath === "/") {println("calling enumerateXsd at Default")} // DEBUG
           enumerateXsd(
             rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)), pathData
           )

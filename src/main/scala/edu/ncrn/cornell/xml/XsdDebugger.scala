@@ -1,6 +1,10 @@
 package edu.ncrn.cornell.xml
 
 import scala.collection.mutable
+
+import cats._
+import cats.instances.all._
+import cats.syntax.eq._
 /**
   * @author Brandon Barker
   *         10/18/2016
@@ -15,16 +19,25 @@ import scala.collection.mutable
 ))
 private[xml] class XsdDebugger {
   val pathCounter: mutable.Map[String, Int] = mutable.Map()
+  var progressCounter: Long = 0
 
   def addPath(xpath: String): Unit = {
     if (pathCounter.contains(xpath)) {
       val currentCount: Int = pathCounter(xpath)
-      if (currentCount > 200) {
+      if (currentCount > 20) {
         println(s"$xpath count is $currentCount")
       }
       pathCounter += (xpath -> (currentCount + 1))
     } else pathCounter += (xpath -> 0)
 
   }
+
+  def progressCount(printInterval: Long): Unit = {
+    progressCounter += 1
+    if (progressCounter % printInterval === 0) {
+      println(s"progress: $progressCounter")
+    }
+  }
+
 
 }
