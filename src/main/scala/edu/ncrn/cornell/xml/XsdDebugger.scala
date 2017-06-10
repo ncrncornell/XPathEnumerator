@@ -15,7 +15,7 @@ import cats.syntax.eq._
   * or its variants; it is not part of the public API.
   */
 @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures",
-  "org.wartremover.warts.NonUnitStatements"
+  "org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Var"
 ))
 private[xml] class XsdDebugger {
   val pathCounter: mutable.Map[String, Int] = mutable.Map()
@@ -28,14 +28,23 @@ private[xml] class XsdDebugger {
         println(s"$xpath count is $currentCount")
       }
       pathCounter += (xpath -> (currentCount + 1))
-    } else pathCounter += (xpath -> 0)
-
+    }
+    else {
+      println(s"::new xpath:: $xpath")
+      pathCounter += (xpath -> 0)
+    }
   }
 
   def progressCount(printInterval: Long): Unit = {
     progressCounter += 1
     if (progressCounter % printInterval === 0) {
       println(s"progress: $progressCounter")
+    }
+  }
+
+  def printOnProgressCount(message: String, printInterval: Long): Unit = {
+    if (progressCounter % printInterval === 0) {
+      println(message)
     }
   }
 
