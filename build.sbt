@@ -26,5 +26,8 @@ lazy val root = (project in file(".")).
     // TODO: move Vars from warnings to errors
     //,wartremoverErrors ++= Warts.unsafe
     ,wartremoverWarnings += Wart.Var
-    ,wartremoverErrors ++= Warts.allBut(Wart.Var, Wart.Nothing)
+    ,wartremoverErrors ++= Warts.allBut(
+      Wart.Var, Wart.Nothing, Wart.ImplicitConversion,
+      Wart.ExplicitImplicitTypes // Seems to not work correctly
+    )
   )

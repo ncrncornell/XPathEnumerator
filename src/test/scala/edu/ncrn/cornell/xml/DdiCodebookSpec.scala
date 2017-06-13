@@ -3,7 +3,7 @@ package edu.ncrn.cornell.xml
 import Util._
 import org.specs2._
 
-import scala.xml.XML
+import scala.xml.{Node, XML}
 
 
 /**
@@ -15,8 +15,10 @@ import scala.xml.XML
 class DdiCodebookSpec extends Specification { def is = s2"""
 
  Testing DDI-Codebook 2.5
-   Passed 4245.xml path check       $readAndFindDDILC32
+   Passed 4245.xml (/codebook only) path check   $readAndFindCodebook |
  """
+
+  //    Passed 4245.xml path check                    $readAndFindDDILC32
 
   val unwantedPrefixes = List("xsi")
 
@@ -36,7 +38,18 @@ class DdiCodebookSpec extends Specification { def is = s2"""
   val xmlTestDataNonUniq = toWildCard(xmlTestData.map{x => x._1})
 
   val readAndFindFromFile = makePairedTester(xmlTestDataNonUniq)
-  val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile) must beTrue
+
+  // Just do /codebook first
+  def codebookFilter(cPath: String, node: Node): Boolean = {
+    println(s"cPath = $cPath; node.label = ${node.label}")
+    cPath.startsWith("/codebook") ||
+      (cPath === "/" && (node.label === "codebook" || node.label === "schema"))
+  }
+
+  //val readAndFindCodebook = readAndFindFromFile(entryXsdFile, None) must beTrue
+  val readAndFindCodebook = readAndFindFromFile(entryXsdFile, Some(codebookFilter)) must beTrue
+
+  //val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile, None) must beTrue
 
 }
 

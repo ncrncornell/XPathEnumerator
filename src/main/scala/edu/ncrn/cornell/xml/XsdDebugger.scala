@@ -1,10 +1,11 @@
 package edu.ncrn.cornell.xml
 
 import scala.collection.mutable
-
 import cats._
 import cats.instances.all._
 import cats.syntax.eq._
+
+import scala.xml.Node
 /**
   * @author Brandon Barker
   *         10/18/2016
@@ -31,6 +32,26 @@ private[xml] class XsdDebugger {
     }
     else {
       println(s"::new xpath:: $xpath")
+      pathCounter += (xpath -> 0)
+    }
+  }
+
+  def addPathNode(xpath: String, node: NodeWrap): Unit = {
+    if (pathCounter.contains(xpath)) {
+      val currentCount: Int = pathCounter(xpath)
+      if (currentCount > 20) {
+        println(s"$xpath count is $currentCount")
+      }
+      pathCounter += (xpath -> (currentCount + 1))
+    }
+    else {
+      //if (node.node.prefix =!= "xs") {
+//        println(s"::new xpath:: $xpath with non-default namespace ${node.node.namespace}" +
+//        s" prefix = ${node.node.prefix}")
+      //}
+      if (node.node.prefix =!= "xs") {
+        println(s"::new prefix:: = ${node.node.prefix}")
+      }
       pathCounter += (xpath -> 0)
     }
   }

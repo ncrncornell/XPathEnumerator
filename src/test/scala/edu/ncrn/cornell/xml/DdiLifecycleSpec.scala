@@ -38,7 +38,7 @@ class DdiLifecycleSpec extends Specification { def is = s2"""
   val xmlTestDataNonUniq = toWildCard(xmlTestData.map{x => x._1})
 
   val readAndFindFromFile = makePairedTester(xmlTestDataNonUniq)
-  val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile) must beTrue
+  val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile, None) must beTrue
 
 }
 

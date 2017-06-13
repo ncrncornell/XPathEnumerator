@@ -5,6 +5,7 @@ import cats.instances.all._
 import cats.syntax.eq._
 
 import scala.xml.Node
+import XpathEnumerator._
 
 /**
   * @author Brandon Barker
@@ -17,8 +18,9 @@ trait XpathEnumerator {
     */
   protected val nodesIn: Seq[Node]
 
-  protected var nodeFilter: Node => Boolean = (_) => true
-  protected var nonEmpty: Boolean = true
+  protected val boundaries: BoundarySchemas = BoundarySchemas(Nil)
+
+  var nonEmpty: Boolean = true
 
   //TODO: need a way to establish boundary conditions on recursion; for instance,
   //TODO leaf nodes (simpleTypes) in XSD, or elements with text data in XML, are
@@ -36,7 +38,7 @@ trait XpathEnumerator {
     * @return A list of tuples of (XPath, value at XPath)
     */
   def enumerate(
-    nonEmpty: Boolean, newNodeFilter: Node => Boolean
+    nonEmpty: Boolean, newNodeFilter: NodeFilter
   ): List[(String, String)]
 
   /**
@@ -44,11 +46,24 @@ trait XpathEnumerator {
     * @return A list of unfiltered tuples of XPaths and value at
     *         XPath, with the exception that empty values are filtered.
     */
-  def enumSimple = enumerate(nonEmpty = true, _ => true)
+  def enumSimple = enumerate(nonEmpty = true, NodeFilterPath((_, _) => true))
 
 }
 
 object XpathEnumerator{
+
+
+  sealed abstract class NodeFilter
+
+  final case class NodeFilterPath(fun: (String, Node) => Boolean) extends NodeFilter
+
+
+  //TODO: make arguments of returned function HList?
+  implicit def NodeFilterToFunction2(nodeFilter: NodeFilter)
+  : (String, Node) => Boolean =
+    (cPath: String, node: Node) => nodeFilter match {
+      case nf: NodeFilterPath => nf.fun(cPath, node)
+    }
 
   def cleanXpath(xpath: String) = xpath.replaceFirst("/#PCDATA", "")
   /**

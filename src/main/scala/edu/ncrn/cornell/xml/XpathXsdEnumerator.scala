@@ -32,51 +32,7 @@ class XpathXsdEnumerator(
 ) extends XpathEnumerator {
 
 
-
-
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  object EnumArgsObj {
-    case class EnumArgs(
-     namedAttributes: XpathNodeMap,
-     namedElements: XpathNodeMap,
-     namedTypes: XpathNodeMap
-   )
-
-    private val namedAttribLens = lens[EnumArgs] >> 'namedAttributes
-    private val namedElementsLens = lens[EnumArgs] >> 'namedElements
-    private val namedTypesLens = lens[EnumArgs] >> 'namedTypes
-
-    //TODO: why doesn't the Lens .modify method work?
-    def updateAttribs(enumArgs: EnumArgs, namedAttributes: XpathNodeMapEntry*) =
-      if (namedAttributes.nonEmpty)
-        namedAttribLens.set(enumArgs)(namedAttribLens.get(enumArgs) ++ namedAttributes)
-      else enumArgs
-
-    def updateElems(enumArgs: EnumArgs, namedElements: XpathNodeMapEntry*) =
-      if (namedElements.nonEmpty)
-        namedElementsLens.set(enumArgs)(namedElementsLens.get(enumArgs) ++ namedElements)
-      else enumArgs
-
-    def updateTypes(enumArgs: EnumArgs, namedTypes: XpathNodeMapEntry*) =
-      if (namedTypes.nonEmpty)
-        namedTypesLens.set(enumArgs)(namedTypesLens.get(enumArgs) ++ namedTypes)
-      else enumArgs
-  }
-  import EnumArgsObj._
-
-  sealed abstract class NodeWrapAbstract(node: Node, eArgs: EnumArgs) {
-    // Otherwise recursing over eArgs.toString will result in OOMs in
-    // e.g., debuggers
-    override def toString = s"node = ${node.toString()}"
-  }
-
-  sealed case class NodeWrap(node: Node, eArgs: EnumArgs)
-    extends NodeWrapAbstract(node, eArgs) {
-    def child = node.node.child.map{ch => NodeWrap(ch, eArgs)}
-  }
-  sealed case class NodeWrapCarry(node: Node, eArgs: EnumArgs, label: String)
-    extends NodeWrapAbstract(node, eArgs)
-
+  import EnumArgs._
 
   type NodeRemaining = (NodeWrap, String, List[Node])
 
@@ -256,9 +212,12 @@ class XpathXsdEnumerator(
 
   @tailrec
   final def enumerateXsd(nodes: Seq[(NodeWrap, String, List[Node])], pathData: List[(String, String)])
-  : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._1.node)) match {
+  (implicit nodeFilter: NodeFilter)
+  : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._2, nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
-      debugger.addPath(currentPath)
+      println(nodeFilter(currentPath, node.node))
+      debugger.addPathNode(currentPath, node)
+      //debugger.addPath(currentPath)
       debugger.progressCount(1000)
       //println(s"current path is: $currentPath of type ${node.node.fullName}") // DEBUG
       node match {
@@ -369,10 +328,10 @@ class XpathXsdEnumerator(
 
   def enumerate(
     nonEmpty: Boolean,
-    newNodeFilter: Node => Boolean
+    newNodeFilter: NodeFilter
   ): List[(String, String)] = {
     this.nonEmpty = nonEmpty
-    this.nodeFilter = newNodeFilter
+    implicit val nodeFilter: NodeFilter = newNodeFilter
     val initArgs = EnumArgs(Map.empty, Map.empty, Map.empty)
     val wrappedNodes = nodesIn.map(x => Utility.trim(x))
       .map(nn => NodeWrap(nn, initArgs))

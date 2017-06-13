@@ -44,10 +44,10 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
 
   val readAndFindFromFile = makePairedTester(xmlTestDataNonUniq)
 
-  val readAndFindRD = readAndFindFromFile(xsdRussianDollFile) must beTrue
-  val readAndFindSS = readAndFindFromFile(xsdSalamiSliceFile) must beTrue
-  val readAndFindVB = readAndFindFromFile(xsdVenetianBlindFile) must beTrue
-  val readAndFindVBG = readAndFindFromFile(xsdVbWithGroupsFile) must beTrue
+  val readAndFindRD = readAndFindFromFile(xsdRussianDollFile, None) must beTrue
+  val readAndFindSS = readAndFindFromFile(xsdSalamiSliceFile, None) must beTrue
+  val readAndFindVB = readAndFindFromFile(xsdVenetianBlindFile, None) must beTrue
+  val readAndFindVBG = readAndFindFromFile(xsdVbWithGroupsFile, None) must beTrue
 
 
 }
