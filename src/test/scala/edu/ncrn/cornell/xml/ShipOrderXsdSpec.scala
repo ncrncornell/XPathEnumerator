@@ -3,7 +3,7 @@ package edu.ncrn.cornell.xml
 import org.specs2._
 
 import scala.xml.{Node, XML}
-import Util._
+import edu.ncrn.cornell.xml.Util._
 
 
 /**

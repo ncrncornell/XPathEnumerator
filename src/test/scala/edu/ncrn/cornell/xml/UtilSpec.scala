@@ -6,7 +6,7 @@ import org.specs2.Specification
   * Created by Brandon on 9/25/2016.
   */
 
-import Util._
+import edu.ncrn.cornell.xml.Util._
 
 class UtilSpec extends Specification { def is = s2"""
 

@@ -25,7 +25,7 @@ private[xml] class XsdDebugger {
   def addPath(xpath: String): Unit = {
     if (pathCounter.contains(xpath)) {
       val currentCount: Int = pathCounter(xpath)
-      if (currentCount > 20) {
+      if (currentCount % 1000 === 0) {
         println(s"$xpath count is $currentCount")
       }
       pathCounter += (xpath -> (currentCount + 1))

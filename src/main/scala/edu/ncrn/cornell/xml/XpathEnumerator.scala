@@ -58,7 +58,7 @@ object XpathEnumerator{
   final case class NodeFilterPath(fun: (String, Node) => Boolean) extends NodeFilter
 
 
-  //TODO: make arguments of returned function HList?
+  //TODO: make arguments of returned function HList? Ideal not to have HList in public API, though.
   implicit def NodeFilterToFunction2(nodeFilter: NodeFilter)
   : (String, Node) => Boolean =
     (cPath: String, node: Node) => nodeFilter match {

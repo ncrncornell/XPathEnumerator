@@ -215,9 +215,8 @@ class XpathXsdEnumerator(
   (implicit nodeFilter: NodeFilter)
   : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._2, nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
-      println(nodeFilter(currentPath, node.node))
-      debugger.addPathNode(currentPath, node)
-      //debugger.addPath(currentPath)
+      //debugger.addPathNode(currentPath, node)
+      debugger.addPath(currentPath)
       debugger.progressCount(1000)
       //println(s"current path is: $currentPath of type ${node.node.fullName}") // DEBUG
       node match {
