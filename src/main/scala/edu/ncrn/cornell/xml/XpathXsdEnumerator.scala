@@ -210,8 +210,8 @@ class XpathXsdEnumerator(
 
   @tailrec
   final def enumerateXsd(nodes: Seq[(NodeWrap, String, List[Node])], pathData: List[(String, String)])
-  (implicit nodeFilter: NodeFilter)
-  : List[(String, String)] = nodes.filter(nn => nodeFilter(nn._2, nn._1.node)) match {
+  (implicit nodeFilters: NodeFilters)
+  : List[(String, String)] = nodes.filter(nn => nodeFilters(nn._2, nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
       //debugger.addPathNode(currentPath, node)
       debugger.addPath(currentPath)
@@ -325,10 +325,10 @@ class XpathXsdEnumerator(
 
   def enumerate(
     nonEmpty: Boolean,
-    newNodeFilter: NodeFilter
+    newNodeFilters: NodeFilters
   ): List[(String, String)] = {
     this.nonEmpty = nonEmpty
-    implicit val nodeFilter: NodeFilter = newNodeFilter
+    implicit val nodeFilters: NodeFilters = newNodeFilters
     val initArgs = EnumArgs(Map.empty, Map.empty, Map.empty)
     val wrappedNodes = nodesIn.map(x => Utility.trim(x))
       .map(nn => NodeWrap(nn, initArgs))

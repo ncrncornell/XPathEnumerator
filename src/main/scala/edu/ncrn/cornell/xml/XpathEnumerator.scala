@@ -40,7 +40,7 @@ trait XpathEnumerator {
     * @return A list of tuples of (XPath, value at XPath)
     */
   def enumerate(
-    nonEmpty: Boolean, newNodeFilter: NodeFilter
+    nonEmpty: Boolean, newNodeFilters: NodeFilters
   ): List[(String, String)]
 
   /**
@@ -48,24 +48,37 @@ trait XpathEnumerator {
     * @return A list of unfiltered tuples of XPaths and value at
     *         XPath, with the exception that empty values are filtered.
     */
-  def enumSimple = enumerate(nonEmpty = true, NodeFilterPath((_, _) => true))
+  def enumSimple = enumerate(nonEmpty = true, NodeFilters(List(
+    NodeFilterPath((_, _) => true))
+  ))
 
 }
 
 object XpathEnumerator{
 
 
-  sealed abstract class NodeFilter
+  sealed abstract class NodeFilter(fun: (String, Node) => Boolean)
+  extends Function2[String, Node, Boolean] {
+    override def apply(ident: String, node: Node): Boolean = fun(ident, node)
+  }
 
-  final case class NodeFilterPath(fun: (String, Node) => Boolean) extends NodeFilter
+  final case class NodeFilters(filters: List[NodeFilter])
+  extends Function2[String, Node, Boolean] {
+    override def apply(ident: String, node: Node): Boolean =
+      filters.forall(nf => nf(ident, node))
+  }
+
+  final case class NodeFilterPath(fun: (String, Node) => Boolean)
+    extends NodeFilter(fun)
+
 
 
   //TODO: make arguments of returned function HList? Ideal not to have HList in public API, though.
-  implicit def NodeFilterToFunction2(nodeFilter: NodeFilter)
-  : (String, Node) => Boolean =
-    (cPath: String, node: Node) => nodeFilter match {
-      case nf: NodeFilterPath => nf.fun(cPath, node)
-    }
+//  implicit def NodeFilterToFunction2(nodeFilter: NodeFilter)
+//  : (String, Node) => Boolean =
+//    (cPath: String, node: Node) => nodeFilter match {
+//      case nf: NodeFilterPath => nf.fun(cPath, node)
+//    }
 
   def cleanXpath(xpath: String) = xpath.replaceFirst("/#PCDATA", "")
   /**

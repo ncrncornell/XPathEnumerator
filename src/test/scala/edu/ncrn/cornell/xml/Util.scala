@@ -1,6 +1,6 @@
 package edu.ncrn.cornell.xml
 
-import edu.ncrn.cornell.xml.XpathEnumerator.{NodeFilter, NodeFilterPath}
+import edu.ncrn.cornell.xml.XpathEnumerator.{NodeFilter, NodeFilterPath, NodeFilters}
 
 import scala.xml.{Node, XML}
 
@@ -34,7 +34,9 @@ object Util {
           NodeFilterPath((_, _) => true)
       }
       println(s"!!!! Initiating enumeration of $fileName !!!!")
-      val xsdXmlData = enumerator.enumerate(enumerator.nonEmpty, newNodeFilter)
+      val xsdXmlData = enumerator.enumerate(
+        enumerator.nonEmpty, NodeFilters(List(newNodeFilter))
+      )
       xsdXmlData.foreach(x => println(x)) // DEBUG
       val missingXPaths = expectedXpaths.toSet -- xsdXmlData.map(_._1).toSet
       missingXPaths.foreach(x => println(s"missing: $x"))

@@ -49,9 +49,19 @@ class DdiCodebookSpec extends Specification { def is = s2"""
       false
     }
 
+  //TODO: improve this in the future; right now this is a proof-of-principle
+  def notFormOrElementType(cPath: String, node: Node): Boolean = {
+    val badTypes = List("ExtLinkType", "LinkType")
+    val typeMaybe: Option[String] = node.attributes.asAttrMap.toList
+      .find(pair => pair._1 === "type").map(pair => pair._2)
+    typeMaybe match {
+      case Some(xmlType) => !badTypes.contains(xmlType)
+      case None => true
+    }
+  }
 
-  val readAndFindCodebook = readAndFindFromFile(entryXsdFile, None) must beTrue
-  //val readAndFindCodebook = readAndFindFromFile(entryXsdFile, Some(codebookFilter)) must beTrue
+  //val readAndFindCodebook = readAndFindFromFile(entryXsdFile, None) must beTrue
+  val readAndFindCodebook = readAndFindFromFile(entryXsdFile, Some(notFormOrElementType)) must beTrue
 
   //val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile, None) must beTrue
 
