@@ -1,9 +1,11 @@
 package edu.ncrn.cornell.xml
 
+import edu.ncrn.cornell.Util._
+
 import scala.collection.mutable
-import cats._
-import cats.instances.all._
-import cats.syntax.eq._
+//import cats._
+//import cats.instances.all._
+//import cats.syntax.eq._
 
 import scala.xml.Node
 /**

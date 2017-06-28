@@ -1,8 +1,10 @@
 package edu.ncrn.cornell.xml
 
-import cats._
-import cats.instances.all._
-import cats.syntax.eq._
+import edu.ncrn.cornell.Util._
+
+//import cats._
+//import cats.instances.all._
+//import cats.syntax.eq._
 
 import scala.xml.Node
 import XpathEnumerator._

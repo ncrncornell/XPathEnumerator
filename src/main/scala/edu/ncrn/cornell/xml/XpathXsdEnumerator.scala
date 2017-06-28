@@ -1,5 +1,7 @@
 package edu.ncrn.cornell.xml
 
+import edu.ncrn.cornell.Util._
+
 import scala.annotation.tailrec
 import scala.xml.{Node, Utility}
 import shapeless._
@@ -8,10 +10,6 @@ import XpathEnumerator._
 import XpathXsdEnumerator._
 
 import scala.util.{Failure, Success, Try}
-
-import cats._
-import cats.instances.all._
-import cats.syntax.eq._
 
 
 /**
