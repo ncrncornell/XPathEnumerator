@@ -29,7 +29,7 @@ class DdiCodebookSpec extends Specification { def is = s2"""
 
   val xpathXmlEnumerator = new XpathXmlEnumerator(XML.load(
     this.getClass.getResourceAsStream("/DDICodebook2dot5/xml/4245.xml")
-  ))
+  ).toList)
 
   val entryXsdFile = "/DDICodebook2dot5/xsd/codebook.xsd"
   val xmlTestData = xpathXmlEnumerator.enumSimple

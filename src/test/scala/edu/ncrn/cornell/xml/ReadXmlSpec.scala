@@ -34,7 +34,7 @@ class ReadXmlSpec extends Specification { def is = s2"""
   val basicXml = <div class="content"><a><b><b><c>123</c></b><c><d>ABC</d></c></b></a><p>
     <q>hello</q><q>,</q></p><r><p>world</p></r><s></s></div>
   //
-  val xpathEnumerator = new XpathXmlEnumerator(basicXml)
+  val xpathEnumerator = new XpathXmlEnumerator(basicXml.toList)
   val xpathData = xpathEnumerator.enumSimple
   //
   // Check that we are getting multiple known nodes and a known attribute path
@@ -52,7 +52,7 @@ class ReadXmlSpec extends Specification { def is = s2"""
   val indexCheck = divPQ12count === 2 && divPQ12count === divPQnodes.size
 
   val smallXmlFile = "/shiporder.xml"
-  val smallXml = XML.load(this.getClass.getResourceAsStream(smallXmlFile))
+  val smallXml = XML.load(this.getClass.getResourceAsStream(smallXmlFile)).toList
   val smallXpathEnumerator = new XpathXmlEnumerator(smallXml)
   val smallXpathData = smallXpathEnumerator.enumSimple
   smallXpathData.foreach{x => println(x)} // DEBUG
@@ -61,7 +61,7 @@ class ReadXmlSpec extends Specification { def is = s2"""
   // Checks based on reading larger XML files
   //
   val largeXmlFile = "/ssbv602.xml"
-  val largeXml = XML.load(this.getClass.getResourceAsStream(largeXmlFile))
+  val largeXml = XML.load(this.getClass.getResourceAsStream(largeXmlFile)).toList
   val largeXpathEnumerator = new XpathXmlEnumerator(largeXml)
   val largeXpathData = largeXpathEnumerator.enumSimple
   def readFile = largeXpathData.size > xpathData.size

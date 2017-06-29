@@ -30,7 +30,7 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
 
   val xpathXmlEnumerator = new XpathXmlEnumerator(XML.load(
     this.getClass.getResourceAsStream("/shiporder.xml")
-  ))
+  ).toList)
 
   val xsdRussianDollFile = "/shiporder.xsd"
   val xsdSalamiSliceFile = "/shiporder2.xsd"

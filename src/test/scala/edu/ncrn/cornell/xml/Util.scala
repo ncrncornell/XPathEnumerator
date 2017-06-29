@@ -25,7 +25,7 @@ object Util {
   def makePairedTester(expectedXpaths: Iterable[String])
   : (String, Option[(String, Node) => Boolean]) => Boolean =
     (fileName: String, nodeFilter: Option[(String, Node) => Boolean]) => {
-      val xsdXml = XML.load(this.getClass.getResourceAsStream(fileName))
+      val xsdXml = XML.load(this.getClass.getResourceAsStream(fileName)).toList
       val enumerator: XpathXsdEnumerator = new XpathXsdEnumerator(xsdXml)
       val newNodeFilter: NodeFilter = nodeFilter match {
         case Some(nf) => NodeFilterPath(nf)

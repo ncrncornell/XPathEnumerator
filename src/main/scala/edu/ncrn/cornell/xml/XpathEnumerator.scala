@@ -18,7 +18,7 @@ trait XpathEnumerator {
   /**
     * The list of root nodes to start from, typically from an XML document
     */
-  protected val nodesIn: Seq[Node]
+  protected val nodesIn: List[Node]
 
   protected val boundaries: BoundarySchemas = BoundarySchemas(Nil)
 
@@ -32,7 +32,7 @@ trait XpathEnumerator {
 
   //var XmlFile = ???
 
-  //TODO: add public interface for enumerate that only takes Seq[Node] as input, along with any optional args
+  //TODO: add public interface for enumerate that only takes List[Node] as input, along with any optional args
 
   /**
     *
@@ -85,8 +85,8 @@ object XpathEnumerator{
     * Helper function to add XPaths to a node sequence; assume a default of root nodes.
     */
   def pathifyNodes(
-    nodes: Seq[Node], parPath: String, nonEmpty: Boolean
-  ): Seq[(Node, String)] = {
+    nodes: List[Node], parPath: String, nonEmpty: Boolean
+  ): List[(Node, String)] = {
     def nodeNotEmpty(node: Node) =
       if (nonEmpty) node.text =!= "" else true
     nodes.filter(nodeNotEmpty).groupBy(nn => parPath + nn.label).toList.flatMap{

@@ -2,6 +2,7 @@ package edu.ncrn.cornell.xml
 
 import edu.ncrn.cornell.Util._
 
+import scala.collection.breakOut
 import scala.annotation.tailrec
 import scala.xml.{Node, Utility}
 import shapeless._
@@ -26,7 +27,7 @@ import scala.util.{Failure, Success, Try}
 // http://stackoverflow.com/questions/3900307/cleaner-way-to-update-nested-structures
 // http://stackoverflow.com/questions/9003874/idiomatic-way-to-update-value-in-a-map-based-on-previous-value
 class XpathXsdEnumerator(
-  protected val nodesIn: Seq[Node]
+  protected val nodesIn: List[Node]
 ) extends XpathEnumerator {
 
 
@@ -200,8 +201,8 @@ class XpathXsdEnumerator(
 
 
 
-  def pathifyXsdNodes(nodes: Seq[NodeWrap], parPath: String)
-  : Seq[(NodeWrap, String)] = {
+  def pathifyXsdNodes(nodes: List[NodeWrap], parPath: String)
+  : List[(NodeWrap, String)] = {
     nodes.groupBy(nn => parPath + xsdXpathLabel(nn)).toList.flatMap{
       case(xpath, labNodes) =>
         labNodes.map{nn => (nn, xpath)}
@@ -209,7 +210,7 @@ class XpathXsdEnumerator(
   }
 
   @tailrec
-  final def enumerateXsd(nodes: Seq[(NodeWrap, String, List[Node])], pathData: List[(String, String)])
+  final def enumerateXsd(nodes: List[(NodeWrap, String, List[Node])], pathData: List[(String, String)])
   (implicit nodeFilters: NodeFilters)
   : List[(String, String)] = nodes.filter(nn => nodeFilters(nn._2, nn._1.node)) match {
     case (node, currentPath, refNodesVisited) +: rest =>
@@ -229,7 +230,7 @@ class XpathXsdEnumerator(
             else Nil
 
           val newNodes = pathifyXsdNodes(
-            node.child.map(ch => NodeWrap(ch.node, eArgsNew)), currentPath + "/"
+            node.child.map(ch => NodeWrap(ch.node, eArgsNew))(breakOut), currentPath + "/"
           )
           val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
           debugger.printOnProgressCount("calling enumerateXsd at XsdNamedElement", 1000) // DEBUG
@@ -258,8 +259,8 @@ class XpathXsdEnumerator(
           enumerateXsd(restNew, newElementData ::: pathData)
         case XsdUnion(Success(refNode)) =>
           // Similar to default case except we add new nodes from reference
-          val newNodes = pathifyXsdNodes(node.child, currentPath) ++
-            pathifyXsdNodes(refNode.child , currentPath)
+          val newNodes = pathifyXsdNodes(node.child.toList, currentPath) ++
+            pathifyXsdNodes(refNode.child.toList , currentPath)
           if (currentPath === "/") {println("calling enumerateXsd at XsdUnion")} // DEBUG
           enumerateXsd(
           rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)), pathData
@@ -272,13 +273,13 @@ class XpathXsdEnumerator(
               enumerateXsd(rest, (cleanXpath(currentPath), "recursive!") :: pathData)
             }
             else {
-              val newNamedElems: Seq[XpathNodeMapEntry] =
+              val newNamedElems: List[XpathNodeMapEntry] =
                 if (xsdNamedTypes.contains(refnode.node.fullName) &&
                   refnode.node.attributes.asAttrMap.contains("name")) {
                 // This will be a named element that forwards to some other node
-                  Seq(label -> refnode)
+                  List(label -> refnode)
                 }
-                else Seq.empty
+                else Nil
               val newElementData =
                 List((cleanXpath(currentPath),
                   refnode match {
@@ -296,7 +297,7 @@ class XpathXsdEnumerator(
                   else Nil)
               val eArgsNew = updateElems(refnode.eArgs, newNamedElems: _*)
               val newNodes = pathifyXsdNodes(
-                refnode.child.map(ch => NodeWrap(ch.node, eArgsNew)),
+                refnode.child.map(ch => NodeWrap(ch.node, eArgsNew))(breakOut),
                 currentPath + "/"
               )
               val restNew = rest.map(nn => nodeArgLens.set(nn)(eArgsNew))
@@ -310,17 +311,17 @@ class XpathXsdEnumerator(
           case Failure(e) => //TODO: narrow this down to appropriate error
             debugger.printOnProgressCount("calling enumerateXsd at XsdNonLocalElement (3)", 1000) // DEBUG
             // Not ready yet, let's try again later:
-            enumerateXsd(rest ++ Seq((node, currentPath, refNodesVisited)), pathData)
+            enumerateXsd(rest ++ List((node, currentPath, refNodesVisited)), pathData)
         }
         case _ =>
           // Default; no path change
-          val newNodes = pathifyXsdNodes(node.child, currentPath)
+          val newNodes = pathifyXsdNodes(node.child.toList, currentPath)
           debugger.printOnProgressCount("calling enumerateXsd at Default", 1000) // DEBUG
           enumerateXsd(
             rest ++ newNodes.map(nn => (nn._1, nn._2, refNodesVisited)), pathData
           )
       }
-    case Seq() => pathData
+    case Nil => pathData
   }
 
   def enumerate(

@@ -27,6 +27,7 @@ project/plugins/project/
 
 # User-specific stuff:
 .idea
+.ensime*
 
 ## File-based project format:
 *.iws

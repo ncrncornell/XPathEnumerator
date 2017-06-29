@@ -29,7 +29,7 @@ class DdiLifecycleSpec extends Specification { def is = s2"""
     this.getClass.getResourceAsStream(
       "/DDILifecycle3dot2/xml/ICPSR2079variables.xml"
     )
-  ))
+  ).toList)
 
   val entryXsdFile = "/DDILifecycle3dot2/xsd/instance.xsd"
   val xmlTestData = xpathXmlEnumerator.enumSimple
