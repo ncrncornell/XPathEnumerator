@@ -18,6 +18,8 @@ lazy val root = (project in file(".")).
 //      "org.typelevel" %% "cats-core" % "0.8.1",
       "org.scala-lang.modules" %% "scala-xml" % "1.0.5",
       "com.chuusai" %% "shapeless" % "2.3.2",
+//      compilerPlugin("com.github.wheaties" %% "twotails" % "0.3.1" cross CrossVersion.full),
+//      "com.github.wheaties" %% "twotails-annotations" % "0.3.1" cross CrossVersion.full,
       "org.specs2" %% "specs2-core" % "3.8.5" % "it,test",
       "net.sf.saxon" % "Saxon-HE" % "9.7.0-8" % "it,test"
     )//,
