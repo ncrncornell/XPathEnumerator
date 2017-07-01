@@ -1,5 +1,7 @@
 package edu.ncrn.cornell.xml
 
+import XpathEnumerator._
+
 import edu.ncrn.cornell.xml.Util._
 import org.specs2._
 
@@ -38,7 +40,8 @@ class DdiLifecycleSpec extends Specification { def is = s2"""
   val xmlTestDataNonUniq = toWildCard(xmlTestData.map{x => x._1})
 
   val readAndFindFromFile = makePairedTester(xmlTestDataNonUniq)
-  val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile, None) must beTrue
+
+  val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile, noFilter) must beTrue
 
 }
 

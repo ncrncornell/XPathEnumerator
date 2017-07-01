@@ -1,5 +1,6 @@
 package edu.ncrn.cornell.xml
 
+import XpathEnumerator._
 import org.specs2._
 
 import scala.xml.{Node, XML}
@@ -44,10 +45,10 @@ class ShipOrderXsdSpec extends Specification { def is = s2"""
 
   val readAndFindFromFile = makePairedTester(xmlTestDataNonUniq)
 
-  val readAndFindRD = readAndFindFromFile(xsdRussianDollFile, None) must beTrue
-  val readAndFindSS = readAndFindFromFile(xsdSalamiSliceFile, None) must beTrue
-  val readAndFindVB = readAndFindFromFile(xsdVenetianBlindFile, None) must beTrue
-  val readAndFindVBG = readAndFindFromFile(xsdVbWithGroupsFile, None) must beTrue
+  val readAndFindRD = readAndFindFromFile(xsdRussianDollFile, noFilter) must beTrue
+  val readAndFindSS = readAndFindFromFile(xsdSalamiSliceFile, noFilter) must beTrue
+  val readAndFindVB = readAndFindFromFile(xsdVenetianBlindFile, noFilter) must beTrue
+  val readAndFindVBG = readAndFindFromFile(xsdVbWithGroupsFile, noFilter) must beTrue
 
 
 }

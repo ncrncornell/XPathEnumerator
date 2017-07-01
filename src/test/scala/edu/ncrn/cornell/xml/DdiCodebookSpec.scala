@@ -1,6 +1,7 @@
 package edu.ncrn.cornell.xml
 
 import edu.ncrn.cornell.xml.Util._
+import edu.ncrn.cornell.xml.XpathEnumerator.{NodeFilterGeneric, NodeFilters}
 import org.specs2._
 
 import scala.xml.{Node, XML}
@@ -52,6 +53,17 @@ class DdiCodebookSpec extends Specification { def is = s2"""
   //TODO: improve this in the future; right now this is a proof-of-principle
   def notFormOrElementType(cPath: String, node: Node): Boolean = {
     val badTypes = List("ExtLinkType", "LinkType")
+
+    //
+    // DEBUG
+    //
+//    val dbgList = node.attributes.asAttrMap.toList.find(pair => pair._1 === "type").map(pair => pair._2)
+//    dbgList match{
+//      case Some(list) if list.nonEmpty => println(s"types: $list")
+//      case _ =>
+//    }
+//
+
     val typeMaybe: Option[String] = node.attributes.asAttrMap.toList
       .find(pair => pair._1 === "type").map(pair => pair._2)
     typeMaybe match {
@@ -60,8 +72,18 @@ class DdiCodebookSpec extends Specification { def is = s2"""
     }
   }
 
-  //val readAndFindCodebook = readAndFindFromFile(entryXsdFile, None) must beTrue
-  val readAndFindCodebook = readAndFindFromFile(entryXsdFile, Some(notFormOrElementType)) must beTrue
+
+  val testFilters = NodeFilters(List(
+    NodeFilterGeneric((x1: String, x2: Node) => false),
+    NodeFilterGeneric((x1: String, x2: Node) => false)
+  )) // TODO: make a "null" test for this?
+
+  val productionLikeFilters = NodeFilters(List(
+    NodeFilterGeneric(notFormOrElementType)
+  ))
+
+  //  val readAndFindCodebook = readAndFindFromFile(entryXsdFile, Some(notFormOrElementType)) must beTrue
+  val readAndFindCodebook = readAndFindFromFile(entryXsdFile, productionLikeFilters) must beTrue
 
   //val readAndFindDDILC32 = readAndFindFromFile(entryXsdFile, None) must beTrue
 

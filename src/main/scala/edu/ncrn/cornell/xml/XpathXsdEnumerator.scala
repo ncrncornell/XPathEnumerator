@@ -135,7 +135,6 @@ class XpathXsdEnumerator(
           )
         case attrMap =>
           //println(attrMap)
-          println(node.eArgs.filteredElements)
           None
       }
     }
@@ -233,6 +232,10 @@ class XpathXsdEnumerator(
     val keptNodes = keptRawNodes.map{nn =>
       val eArgsWithFilt = updateFiltered(nn._1.eArgs, filteredNodes: _*)
       nodeArgLens.set(nn)(eArgsWithFilt)
+    }
+    if (filteredNodes.nonEmpty) {
+      println(s"found a filtere'd node: ${filteredNodes}")
+      println("that's all folks")
     }
     keptNodes match {
       case (node, currentPath, refNodesVisited) +: rest =>

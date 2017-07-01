@@ -49,7 +49,7 @@ trait XpathEnumerator {
     *         XPath, with the exception that empty values are filtered.
     */
   def enumSimple = enumerate(nonEmpty = true, NodeFilters(List(
-    NodeFilterPath((_, _) => true))
+    NodeFilterGeneric((_, _) => true))
   ))
 
 }
@@ -64,11 +64,19 @@ object XpathEnumerator{
 
   final case class NodeFilters(filters: List[NodeFilter])
   extends Function2[String, Node, Boolean] {
-    override def apply(ident: String, node: Node): Boolean =
+    override def apply(ident: String, node: Node): Boolean = {
+
+      val x = 2+2 // DEBUG
+
       filters.forall(nf => nf(ident, node))
+    }
   }
 
-  final case class NodeFilterPath(fun: (String, Node) => Boolean)
+  val noFilter = NodeFilters(List(
+    NodeFilterGeneric((x1: String, x2: Node) => true)
+  ))
+
+  final case class NodeFilterGeneric(fun: (String, Node) => Boolean)
     extends NodeFilter(fun)
 
 

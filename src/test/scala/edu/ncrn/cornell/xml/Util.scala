@@ -1,6 +1,6 @@
 package edu.ncrn.cornell.xml
 
-import edu.ncrn.cornell.xml.XpathEnumerator.{NodeFilter, NodeFilterPath, NodeFilters}
+import edu.ncrn.cornell.xml.XpathEnumerator.{NodeFilter, NodeFilterGeneric, NodeFilters}
 
 import scala.xml.{Node, XML}
 
@@ -23,20 +23,12 @@ object Util {
     * that they are all present.
     */
   def makePairedTester(expectedXpaths: Iterable[String])
-  : (String, Option[(String, Node) => Boolean]) => Boolean =
-    (fileName: String, nodeFilter: Option[(String, Node) => Boolean]) => {
+  : (String, NodeFilters) => Boolean =
+    (fileName: String, nodeFilters: NodeFilters) => {
       val xsdXml = XML.load(this.getClass.getResourceAsStream(fileName)).toList
       val enumerator: XpathXsdEnumerator = new XpathXsdEnumerator(xsdXml)
-      val newNodeFilter: NodeFilter = nodeFilter match {
-        case Some(nf) => NodeFilterPath(nf)
-        case None =>
-          println("DEBUG: setting nf to false")
-          NodeFilterPath((_, _) => true)
-      }
       println(s"!!!! Initiating enumeration of $fileName !!!!")
-      val xsdXmlData = enumerator.enumerate(
-        enumerator.nonEmpty, NodeFilters(List(newNodeFilter))
-      )
+      val xsdXmlData = enumerator.enumerate(enumerator.nonEmpty, nodeFilters)
       xsdXmlData.foreach(x => println(x)) // DEBUG
       val missingXPaths = expectedXpaths.toSet -- xsdXmlData.map(_._1).toSet
       missingXPaths.foreach(x => println(s"missing: $x"))
